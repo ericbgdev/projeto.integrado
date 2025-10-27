@@ -1,4 +1,3 @@
-dart
 import 'package:mysql1/mysql1.dart';
 import '../models/leitura_sensor.dart';
 
@@ -38,10 +37,5 @@ class MySQLService {
     final conn = await MySqlConnection.connect(_settings);
     // Implementar busca do histórico
     return [];
-  }
-}
-  }) async {
-    print('📝 Simulando inserção via SP...');
-    print('Sensor: $idSensor, Temp: $temperatura, Movimento: $movimento');
   }
 }
