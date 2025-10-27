@@ -1,20 +1,25 @@
 class LeituraSensor {
-  final double temperatura;
-  final double umidade;
+  final int idSensor;
+  final int idFilial;
+  final String tipoSensor;
+  final String localizacao;
+  final String filial;
+  final double? temperatura;
+  final double? umidade;
   final bool movimentoDetectado;
-  final bool lampada;
-  final String localFilial;
+  final bool lampadaLigada;
+  final DateTime timestamp;
 
   LeituraSensor({
-    required this.temperatura,
-    required this.umidade,
+    required this.idSensor,
+    required this.idFilial,
+    required this.tipoSensor,
+    required this.localizacao,
+    required this.filial,
+    this.temperatura,
+    this.umidade,
     required this.movimentoDetectado,
-    required this.lampada,
-    required this.localFilial,
+    required this.lampadaLigada,
+    required this.timestamp,
   });
-
-  @override
-  String toString() {
-    return 'Leitura[$localFilial]: ${temperatura}C, ${umidade}%, Mov: $movimentoDetectado, Lamp: $lampada';
-  }
 }
