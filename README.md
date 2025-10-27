@@ -1,16 +1,13 @@
 # 🏢 Sistema de Monitoramento Packbag
 
-Sistema integrado de monitoramento com sensores PIR HC-SR501 + DHT11 para as filiais Packbag.
+Sistema integrado com sensores PIR HC-SR501 + DHT11 para as filiais Packbag.
 
 ## 👥 Equipe
-- **Eric Butzloff Gudera** (Líder) - MySQL Integration
+- **Eric Butzloff Gudera** - MySQL Integration
 - **Gabrielly Cristina dos Reis** - Firebase Integration  
 - **Lindsay Cristine Oliveira Souza** - Estrutura e Configuração
 
-## 🛠 Tecnologias
-- Dart/Flutter
-- MySQL
-- Firebase Firestore
-- Sensors: PIR HC-SR501 + DHT11
-
-## 📁 Estrutura
+## 🚀 Como Executar
+```bash
+dart pub get
+dart run lib/main.dart
