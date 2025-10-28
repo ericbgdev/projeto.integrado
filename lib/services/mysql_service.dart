@@ -6,7 +6,7 @@ class MySQLService {
     host: 'localhost',
     port: 3306,
     user: 'root',
-    password: 'sua_senha', // ALTERAR PARA SUA SENHA
+    password: 'unifeob@123', // ALTERAR PARA SUA SENHA
     db: 'pi-entrega5',
   );
 
