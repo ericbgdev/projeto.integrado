@@ -5,7 +5,7 @@ class SensoresData {
       'endereco': 'Av. Francisco Gonçalves, 409', 'gerente': 'João Silva'
     },
     2: {
-      'id': 2, 'nome': 'Casa Branca', 'cidade': 'Casa Branca', 'estado': 'SP',
+      'id': 2, 'nome': 'Casa Branca', 'cidade': 'Casa Branca', 'estado': 'SP', 
       'endereco': 'BLOCO B Estrada Acesso, SP-340', 'gerente': 'Maria Santos'
     }
   };
