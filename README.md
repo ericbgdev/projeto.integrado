@@ -11,3 +11,4 @@ Sistema integrado com sensores PIR HC-SR501 + DHT11 para as filiais Packbag.
 ```bash
 dart pub get
 dart run lib/main.dart
+
