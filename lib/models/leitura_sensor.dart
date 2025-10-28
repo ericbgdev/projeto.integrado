@@ -26,12 +26,12 @@ class LeituraSensor {
   @override
   String toString() {
     String info = '[$filial] $tipoSensor (ID:$idSensor) | ';
-   
+    
     if (temperatura != null) info += '🌡️${temperatura!.toStringAsFixed(1)}°C ';
     if (umidade != null) info += '💧${umidade!.toStringAsFixed(1)}% ';
     if (movimentoDetectado) info += '🏃MOVIMENTO ';
     if (lampadaLigada) info += '💡LÂMPADA ';
-   
+    
     return info;
   }
 }
