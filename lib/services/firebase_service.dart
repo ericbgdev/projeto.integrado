@@ -1,4 +1,3 @@
-dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/leitura_sensor.dart';
 
@@ -19,21 +18,15 @@ class FirebaseService {
         'lampada_ligada': leitura.lampadaLigada,
         'timestamp': FieldValue.serverTimestamp(),
       });
-      print('🔥 Firebase: Leitura em tempo real salva');
+      print('   🔥 Firebase: Salvo em tempo real');
     } catch (e) {
-      print('❌ Firebase Error: $e');
+      print('   ❌ Firebase Error: $e');
     }
   }
 
-  static Stream<QuerySnapshot> ouvirLeiturasTempoReal() {
+  static Stream<QuerySnapshot> ouvirLeituras() {
     return _firestore
         .collection('leituras')
-        .orderBy('timestamp', descending: true)
-        .limit(10)
-        .snapshots();
-  }
-}
-
         .orderBy('timestamp', descending: true)
         .limit(10)
         .snapshots();
