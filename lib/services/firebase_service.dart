@@ -1,3 +1,4 @@
+dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/leitura_sensor.dart';
 
@@ -27,6 +28,12 @@ class FirebaseService {
   static Stream<QuerySnapshot> ouvirLeiturasTempoReal() {
     return _firestore
         .collection('leituras')
+        .orderBy('timestamp', descending: true)
+        .limit(10)
+        .snapshots();
+  }
+}
+
         .orderBy('timestamp', descending: true)
         .limit(10)
         .snapshots();
