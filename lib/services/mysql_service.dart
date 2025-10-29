@@ -13,17 +13,14 @@ class MySQLService {
     db: 'pi-entrega5',
   );
 
-  // ========== OPERAÇÕES LEITURA ==========
   static Future<void> salvarLeitura(LeituraSensor leitura) async {
     MySqlConnection? conn;
     
     try {
       conn = await MySqlConnection.connect(_settings);
       
-      // 🔄 PRIMEIRO: SALVAR NO FIREBASE (EM TEMPO REAL)
       await _salvarNoFirebase(leitura);
       
-      // 🔄 DEPOIS: SALVAR NO MYSQL (BACKUP/HISTÓRICO)
       await conn.query(
         'CALL sp_inserir_leitura(?, ?, ?, ?, ?)',
         [
@@ -34,173 +31,17 @@ class MySQLService {
           leitura.lampadaLigada ? 1 : 0
         ]
       );
-      print('   💾 MySQL: Salvo via Stored Procedure');
+      print('MySQL: Salvo via Stored Procedure');
       
     } catch (e) {
-      print('   ⚠️ MySQL SP Error: $e');
-      print('   🔄 Tentando insert direto...');
+      print('MySQL SP Error: $e');
+      print('Tentando insert direto...');
       await _inserirDireto(conn!, leitura);
     } finally {
       await conn?.close();
     }
   }
 
-  // 🔥 NOVO: BUSCAR LEITURAS COM ORM
-  static Future<List<LeituraSensor>> buscarLeituras({int? idFilial, int limite = 50}) async {
-    MySqlConnection? conn;
-    try {
-      conn = await MySqlConnection.connect(_settings);
-      
-      String query = '''
-        SELECT fl.*, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao 
-        FROM FATO_LEITURAS fl
-        JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
-        JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
-      ''';
-      
-      if (idFilial != null) {
-        query += ' WHERE fl.ID_Filial = ?';
-      }
-      
-      query += ' ORDER BY fl.Timestamp DESC LIMIT ?';
-      
-      var resultados = await conn.query(
-        query, 
-        idFilial != null ? [idFilial, limite] : [limite]
-      );
-      
-      // ORM: Converter ResultSet para List<LeituraSensor>
-      return resultados.map((row) => LeituraSensor.fromMap(row.fields)).toList();
-      
-    } catch (e) {
-      print('❌ Erro ao buscar leituras: $e');
-      return [];
-    } finally {
-      await conn?.close();
-    }
-  }
-
-  // 🔥 NOVO: BUSCAR LEITURAS POR SENSOR
-  static Future<List<LeituraSensor>> buscarLeiturasPorSensor(int idSensor, {int limite = 20}) async {
-    MySqlConnection? conn;
-    try {
-      conn = await MySqlConnection.connect(_settings);
-      
-      var resultados = await conn.query('''
-        SELECT fl.*, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao 
-        FROM FATO_LEITURAS fl
-        JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
-        JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
-        WHERE fl.ID_Sensor = ?
-        ORDER BY fl.Timestamp DESC 
-        LIMIT ?
-      ''', [idSensor, limite]);
-      
-      return resultados.map((row) => LeituraSensor.fromMap(row.fields)).toList();
-      
-    } catch (e) {
-      print('❌ Erro ao buscar leituras do sensor: $e');
-      return [];
-    } finally {
-      await conn?.close();
-    }
-  }
-
-  // ========== OPERAÇÕES FILIAL ==========
-  static Future<List<Filial>> buscarFiliais() async {
-    MySqlConnection? conn;
-    try {
-      conn = await MySqlConnection.connect(_settings);
-      
-      var resultados = await conn.query('SELECT * FROM DIM_FILIAL ORDER BY Nome_Filial');
-      
-      // ORM: Converter ResultSet para List<Filial>
-      return resultados.map((row) => Filial.fromMap(row.fields)).toList();
-      
-    } catch (e) {
-      print('❌ Erro ao buscar filiais: $e');
-      return [];
-    } finally {
-      await conn?.close();
-    }
-  }
-
-  static Future<Filial?> buscarFilialPorId(int id) async {
-    MySqlConnection? conn;
-    try {
-      conn = await MySqlConnection.connect(_settings);
-      
-      var resultados = await conn.query(
-        'SELECT * FROM DIM_FILIAL WHERE ID_Filial = ?', 
-        [id]
-      );
-      
-      if (resultados.isNotEmpty) {
-        return Filial.fromMap(resultados.first.fields);
-      }
-      return null;
-      
-    } catch (e) {
-      print('❌ Erro ao buscar filial: $e');
-      return null;
-    } finally {
-      await conn?.close();
-    }
-  }
-
-  // ========== OPERAÇÕES SENSOR ==========
-  static Future<List<Sensor>> buscarSensores({int? idFilial}) async {
-    MySqlConnection? conn;
-    try {
-      conn = await MySqlConnection.connect(_settings);
-      
-      String query = 'SELECT * FROM DIM_SENSOR WHERE Status = "Ativo"';
-      List<dynamic> params = [];
-      
-      if (idFilial != null) {
-        query += ' AND ID_Filial = ?';
-        params.add(idFilial);
-      }
-      
-      query += ' ORDER BY ID_Sensor';
-      
-      var resultados = await conn.query(query, params);
-      
-      // ORM: Converter ResultSet para List<Sensor>
-      return resultados.map((row) => Sensor.fromMap(row.fields)).toList();
-      
-    } catch (e) {
-      print('❌ Erro ao buscar sensores: $e');
-      return [];
-    } finally {
-      await conn?.close();
-    }
-  }
-
-  static Future<Sensor?> buscarSensorPorId(int id) async {
-    MySqlConnection? conn;
-    try {
-      conn = await MySqlConnection.connect(_settings);
-      
-      var resultados = await conn.query(
-        'SELECT * FROM DIM_SENSOR WHERE ID_Sensor = ?', 
-        [id]
-      );
-      
-      if (resultados.isNotEmpty) {
-        return Sensor.fromMap(resultados.first.fields);
-      }
-      return null;
-      
-    } catch (e) {
-      print('❌ Erro ao buscar sensor: $e');
-      return null;
-    } finally {
-      await conn?.close();
-    }
-  }
-
-  // ========== MÉTODOS EXISTENTES (mantidos) ==========
   static Future<void> _salvarNoFirebase(LeituraSensor leitura) async {
     try {
       await FirebaseService.salvarLeitura({
@@ -215,9 +56,9 @@ class MySQLService {
         'timestamp': leitura.timestamp,
         'fonte': 'MySQL_Em_Tempo_Real',
       });
-      print('   🔥 Firebase: Leitura salva em tempo real');
+      print('Firebase: Leitura salva em tempo real');
     } catch (e) {
-      print('   ⚠️ Firebase Error: $e');
+      print('Firebase Error: $e');
     }
   }
 
@@ -241,9 +82,157 @@ class MySQLService {
           leitura.timestamp
         ]
       );
-      print('   💾 MySQL: Salvo via insert direto');
+      print('MySQL: Salvo via insert direto');
     } catch (e) {
-      print('   ❌ MySQL Insert Error: $e');
+      print('MySQL Insert Error: $e');
+    }
+  }
+
+  static Future<List<LeituraSensor>> buscarLeituras({int? idFilial, int limite = 50}) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      String query = '''
+        SELECT fl.*, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao 
+        FROM FATO_LEITURAS fl
+        JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+        JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+      ''';
+      
+      if (idFilial != null) {
+        query += ' WHERE fl.ID_Filial = ?';
+      }
+      
+      query += ' ORDER BY fl.Timestamp DESC LIMIT ?';
+      
+      var resultados = await conn.query(
+        query, 
+        idFilial != null ? [idFilial, limite] : [limite]
+      );
+      
+      return resultados.map((row) => LeituraSensor.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('Erro ao buscar leituras: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  static Future<List<LeituraSensor>> buscarLeiturasPorSensor(int idSensor, {int limite = 20}) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query('''
+        SELECT fl.*, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao 
+        FROM FATO_LEITURAS fl
+        JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+        JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+        WHERE fl.ID_Sensor = ?
+        ORDER BY fl.Timestamp DESC 
+        LIMIT ?
+      ''', [idSensor, limite]);
+      
+      return resultados.map((row) => LeituraSensor.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('Erro ao buscar leituras do sensor: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  static Future<List<Filial>> buscarFiliais() async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query('SELECT * FROM DIM_FILIAL ORDER BY Nome_Filial');
+      
+      return resultados.map((row) => Filial.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('Erro ao buscar filiais: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  static Future<Filial?> buscarFilialPorId(int id) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query(
+        'SELECT * FROM DIM_FILIAL WHERE ID_Filial = ?', 
+        [id]
+      );
+      
+      if (resultados.isNotEmpty) {
+        return Filial.fromMap(resultados.first.fields);
+      }
+      return null;
+      
+    } catch (e) {
+      print('Erro ao buscar filial: $e');
+      return null;
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  static Future<List<Sensor>> buscarSensores({int? idFilial}) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      String query = 'SELECT * FROM DIM_SENSOR WHERE Status = "Ativo"';
+      List<dynamic> params = [];
+      
+      if (idFilial != null) {
+        query += ' AND ID_Filial = ?';
+        params.add(idFilial);
+      }
+      
+      query += ' ORDER BY ID_Sensor';
+      
+      var resultados = await conn.query(query, params);
+      
+      return resultados.map((row) => Sensor.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('Erro ao buscar sensores: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  static Future<Sensor?> buscarSensorPorId(int id) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query(
+        'SELECT * FROM DIM_SENSOR WHERE ID_Sensor = ?', 
+        [id]
+      );
+      
+      if (resultados.isNotEmpty) {
+        return Sensor.fromMap(resultados.first.fields);
+      }
+      return null;
+      
+    } catch (e) {
+      print('Erro ao buscar sensor: $e');
+      return null;
+    } finally {
+      await conn?.close();
     }
   }
 
@@ -251,16 +240,14 @@ class MySQLService {
     MySqlConnection? conn;
     try {
       conn = await MySqlConnection.connect(_settings);
-      print('🔄 SINCRONIZANDO DADOS EXISTENTES MYSQL → FIREBASE');
+      print('SINCRONIZANDO DADOS EXISTENTES MYSQL -> FIREBASE');
       
-      // 1. SINCRONIZAR FILIAIS (usando ORM)
       var filiais = await buscarFiliais();
       for (var filial in filiais) {
         await FirebaseService.salvarFilial(filial.toMap());
       }
-      print('   ✅ ${filiais.length} filiais sincronizadas');
+      print('${filiais.length} filiais sincronizadas');
 
-      // 2. SINCRONIZAR SENSORES (usando ORM)
       var sensores = await buscarSensores();
       for (var sensor in sensores) {
         var filial = await buscarFilialPorId(sensor.idFilial);
@@ -269,9 +256,8 @@ class MySQLService {
           'filial': filial?.nome ?? 'Desconhecida',
         });
       }
-      print('   ✅ ${sensores.length} sensores sincronizados');
+      print('${sensores.length} sensores sincronizados');
 
-      // 3. SINCRONIZAR LEITURAS RECENTES (usando ORM)
       var leituras = await buscarLeituras(limite: 200);
       int contador = 0;
       
@@ -295,15 +281,15 @@ class MySQLService {
         contador++;
         
         if (contador % 50 == 0) {
-          print('   📦 $contador leituras processadas...');
+          print('$contador leituras processadas...');
           await Future.delayed(Duration(milliseconds: 500));
         }
       }
-      print('   ✅ $contador leituras históricas sincronizadas');
-      print('🎉 SINCRONIZAÇÃO CONCLUÍDA!');
+      print('$contador leituras historicas sincronizadas');
+      print('SINCRONIZACAO CONCLUIDA!');
       
     } catch (e) {
-      print('❌ Erro na sincronização: $e');
+      print('Erro na sincronizacao: $e');
     } finally {
       await conn?.close();
     }
@@ -313,10 +299,10 @@ class MySQLService {
     try {
       final conn = await MySqlConnection.connect(_settings);
       final resultado = await conn.query('SELECT COUNT(*) as total FROM DIM_SENSOR');
-      print('   ✅ MySQL: Conectado! ${resultado.first['total']} sensores no banco');
+      print('MySQL: Conectado! ${resultado.first['total']} sensores no banco');
       await conn.close();
     } catch (e) {
-      print('   ❌ MySQL Connection Error: $e');
+      print('MySQL Connection Error: $e');
       rethrow;
     }
   }
