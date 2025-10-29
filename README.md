@@ -1,3 +1,5 @@
+# todo: configurar as opções do Firebase no initializeApp() com suas credenciais reais do projeto
+
 # 🏢 Sistema de Monitoramento Packbag
 
 Sistema integrado com sensores PIR HC-SR501 + DHT11 para as filiais Packbag.
