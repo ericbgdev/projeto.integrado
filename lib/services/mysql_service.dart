@@ -1,6 +1,8 @@
 import 'package:mysql1/mysql1.dart';
 import '../models/leitura_sensor.dart';
-import 'firebase_service.dart'; // ← ADICIONE ESTA IMPORT
+import '../models/filial.dart';
+import '../models/sensor.dart';
+import 'firebase_service.dart';
 
 class MySQLService {
   static final ConnectionSettings _settings = ConnectionSettings(
@@ -11,6 +13,7 @@ class MySQLService {
     db: 'pi-entrega5',
   );
 
+  // ========== OPERAÇÕES LEITURA ==========
   static Future<void> salvarLeitura(LeituraSensor leitura) async {
     MySqlConnection? conn;
     
@@ -42,13 +45,168 @@ class MySQLService {
     }
   }
 
-  // 🔥 NOVO MÉTODO: SALVAR NO FIREBASE
+  // 🔥 NOVO: BUSCAR LEITURAS COM ORM
+  static Future<List<LeituraSensor>> buscarLeituras({int? idFilial, int limite = 50}) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      String query = '''
+        SELECT fl.*, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao 
+        FROM FATO_LEITURAS fl
+        JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+        JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+      ''';
+      
+      if (idFilial != null) {
+        query += ' WHERE fl.ID_Filial = ?';
+      }
+      
+      query += ' ORDER BY fl.Timestamp DESC LIMIT ?';
+      
+      var resultados = await conn.query(
+        query, 
+        idFilial != null ? [idFilial, limite] : [limite]
+      );
+      
+      // ORM: Converter ResultSet para List<LeituraSensor>
+      return resultados.map((row) => LeituraSensor.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('❌ Erro ao buscar leituras: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  // 🔥 NOVO: BUSCAR LEITURAS POR SENSOR
+  static Future<List<LeituraSensor>> buscarLeiturasPorSensor(int idSensor, {int limite = 20}) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query('''
+        SELECT fl.*, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao 
+        FROM FATO_LEITURAS fl
+        JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+        JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+        WHERE fl.ID_Sensor = ?
+        ORDER BY fl.Timestamp DESC 
+        LIMIT ?
+      ''', [idSensor, limite]);
+      
+      return resultados.map((row) => LeituraSensor.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('❌ Erro ao buscar leituras do sensor: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  // ========== OPERAÇÕES FILIAL ==========
+  static Future<List<Filial>> buscarFiliais() async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query('SELECT * FROM DIM_FILIAL ORDER BY Nome_Filial');
+      
+      // ORM: Converter ResultSet para List<Filial>
+      return resultados.map((row) => Filial.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('❌ Erro ao buscar filiais: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  static Future<Filial?> buscarFilialPorId(int id) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query(
+        'SELECT * FROM DIM_FILIAL WHERE ID_Filial = ?', 
+        [id]
+      );
+      
+      if (resultados.isNotEmpty) {
+        return Filial.fromMap(resultados.first.fields);
+      }
+      return null;
+      
+    } catch (e) {
+      print('❌ Erro ao buscar filial: $e');
+      return null;
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  // ========== OPERAÇÕES SENSOR ==========
+  static Future<List<Sensor>> buscarSensores({int? idFilial}) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      String query = 'SELECT * FROM DIM_SENSOR WHERE Status = "Ativo"';
+      List<dynamic> params = [];
+      
+      if (idFilial != null) {
+        query += ' AND ID_Filial = ?';
+        params.add(idFilial);
+      }
+      
+      query += ' ORDER BY ID_Sensor';
+      
+      var resultados = await conn.query(query, params);
+      
+      // ORM: Converter ResultSet para List<Sensor>
+      return resultados.map((row) => Sensor.fromMap(row.fields)).toList();
+      
+    } catch (e) {
+      print('❌ Erro ao buscar sensores: $e');
+      return [];
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  static Future<Sensor?> buscarSensorPorId(int id) async {
+    MySqlConnection? conn;
+    try {
+      conn = await MySqlConnection.connect(_settings);
+      
+      var resultados = await conn.query(
+        'SELECT * FROM DIM_SENSOR WHERE ID_Sensor = ?', 
+        [id]
+      );
+      
+      if (resultados.isNotEmpty) {
+        return Sensor.fromMap(resultados.first.fields);
+      }
+      return null;
+      
+    } catch (e) {
+      print('❌ Erro ao buscar sensor: $e');
+      return null;
+    } finally {
+      await conn?.close();
+    }
+  }
+
+  // ========== MÉTODOS EXISTENTES (mantidos) ==========
   static Future<void> _salvarNoFirebase(LeituraSensor leitura) async {
     try {
       await FirebaseService.salvarLeitura({
         'idSensor': leitura.idSensor,
         'idFilial': leitura.idFilial,
-        'filial': leitura.localFilial,
+        'filial': leitura.filial,
         'temperatura': leitura.temperatura,
         'umidade': leitura.umidade,
         'movimentoDetectado': leitura.movimentoDetectado,
@@ -89,86 +247,59 @@ class MySQLService {
     }
   }
 
-  // 🔥 NOVO MÉTODO: SINCRONIZAR DADOS EXISTENTES
   static Future<void> sincronizarDadosExistentes() async {
     MySqlConnection? conn;
     try {
       conn = await MySqlConnection.connect(_settings);
       print('🔄 SINCRONIZANDO DADOS EXISTENTES MYSQL → FIREBASE');
       
-      // 1. SINCRONIZAR FILIAIS
-      var filiais = await conn.query('SELECT * FROM DIM_FILIAL');
-      for (var row in filiais) {
-        await FirebaseService.salvarFilial({
-          'id': row['ID_Filial'],
-          'nome': row['Nome_Filial'],
-          'cidade': row['Cidade'],
-          'estado': row['Estado'],
-          'endereco': row['Endereco'],
-          'gerente': row['Gerente'],
-          'telefone': row['Telefone'],
-          'cep': row['CEP'],
-        });
+      // 1. SINCRONIZAR FILIAIS (usando ORM)
+      var filiais = await buscarFiliais();
+      for (var filial in filiais) {
+        await FirebaseService.salvarFilial(filial.toMap());
       }
       print('   ✅ ${filiais.length} filiais sincronizadas');
 
-      // 2. SINCRONIZAR SENSORES
-      var sensores = await conn.query('''
-        SELECT s.*, f.Nome_Filial 
-        FROM DIM_SENSOR s 
-        JOIN DIM_FILIAL f ON s.ID_Filial = f.ID_Filial
-      ''');
-      for (var row in sensores) {
+      // 2. SINCRONIZAR SENSORES (usando ORM)
+      var sensores = await buscarSensores();
+      for (var sensor in sensores) {
+        var filial = await buscarFilialPorId(sensor.idFilial);
         await FirebaseService.salvarSensor({
-          'id': row['ID_Sensor'],
-          'tipo': row['Tipo_Sensor'],
-          'modelo': row['Modelo'],
-          'localizacao': row['Localizacao'],
-          'idFilial': row['ID_Filial'],
-          'filial': row['Nome_Filial'],
-          'status': row['Status'],
+          ...sensor.toMap(),
+          'filial': filial?.nome ?? 'Desconhecida',
         });
       }
       print('   ✅ ${sensores.length} sensores sincronizados');
 
-      // 3. SINCRONIZAR LEITURAS RECENTES
-      var leituras = await conn.query('''
-        SELECT fl.*, f.Nome_Filial, s.Tipo_Sensor 
-        FROM FATO_LEITURAS fl
-        JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
-        JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
-        ORDER BY fl.Timestamp DESC 
-        LIMIT 200
-      ''');
-      
+      // 3. SINCRONIZAR LEITURAS RECENTES (usando ORM)
+      var leituras = await buscarLeituras(limite: 200);
       int contador = 0;
-      for (var row in leituras) {
+      
+      for (var leitura in leituras) {
         await FirebaseService.salvarLeitura({
-          'idLeitura': row['ID_Leitura'],
-          'idSensor': row['ID_Sensor'],
-          'idFilial': row['ID_Filial'],
-          'filial': row['Nome_Filial'],
-          'tipoSensor': row['Tipo_Sensor'],
-          'temperatura': row['Temperatura'],
-          'umidade': row['Umidade'],
-          'movimentoDetectado': row['Movimento_Detectado'] == 1,
-          'lampadaLigada': row['Lampada_Ligada'] == 1,
-          'consumo_kWh': row['Consumo_kWh'],
-          'timestamp': row['Timestamp'],
-          'qualidadeSinal': row['Qualidade_Sinal'],
-          'statusLeitura': row['Status_Leitura'],
+          'idLeitura': leitura.idLeitura,
+          'idSensor': leitura.idSensor,
+          'idFilial': leitura.idFilial,
+          'filial': leitura.filial,
+          'tipoSensor': leitura.tipoSensor,
+          'temperatura': leitura.temperatura,
+          'umidade': leitura.umidade,
+          'movimentoDetectado': leitura.movimentoDetectado,
+          'lampadaLigada': leitura.lampadaLigada,
+          'consumo_kWh': leitura.consumoKwh,
+          'timestamp': leitura.timestamp,
+          'qualidadeSinal': leitura.qualidadeSinal,
+          'statusLeitura': leitura.statusLeitura,
           'fonte': 'MySQL_Historico',
         });
         contador++;
         
-        // Não sobrecarregar o Firebase
         if (contador % 50 == 0) {
           print('   📦 $contador leituras processadas...');
           await Future.delayed(Duration(milliseconds: 500));
         }
       }
       print('   ✅ $contador leituras históricas sincronizadas');
-      
       print('🎉 SINCRONIZAÇÃO CONCLUÍDA!');
       
     } catch (e) {
@@ -178,7 +309,6 @@ class MySQLService {
     }
   }
 
-  // Testar conexão
   static Future<void> testarConexao() async {
     try {
       final conn = await MySqlConnection.connect(_settings);
