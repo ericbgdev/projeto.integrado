@@ -20,7 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('🏢 Dashboard Packbag'),
+        title: const Text('Dashboard Packbag'),
         backgroundColor: Colors.blue.shade700,
         foregroundColor: Colors.white,
         elevation: 4,
@@ -30,19 +30,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Cabeçalho
+            
             _buildHeader(),
             const SizedBox(height: 20),
             
-            // Estatísticas em tempo real
             _buildEstatisticas(),
             const SizedBox(height: 20),
             
-            // Leituras recentes
             _buildLeiturasRecentes(),
             const SizedBox(height: 20),
             
-            // Alertas
             _buildAlertas(),
           ],
         ),
@@ -124,16 +121,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '📊 Estatísticas em Tempo Real',
+                  'Estatísticas em Tempo Real',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatCard('🌡️', '${tempMedia.toStringAsFixed(1)}°C', 'Temp Média'),
-                    _buildStatCard('💧', '${umidMedia.toStringAsFixed(1)}%', 'Umidade Média'),
-                    _buildStatCard('🚶', '$totalMovimentos', 'Movimentos'),
+                    _buildStatCard('${tempMedia.toStringAsFixed(1)}°C', 'Temp Média'),
+                    _buildStatCard('${umidMedia.toStringAsFixed(1)}%', 'Umidade Média'),
+                    _buildStatCard('$totalMovimentos', 'Movimentos'),
                   ],
                 ),
               ],
@@ -164,7 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '📈 Leituras Recentes',
+              'Leituras Recentes',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
@@ -215,7 +212,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '⚠️ Alertas do Sistema',
+              'Alertas do Sistema',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange),
             ),
             const SizedBox(height: 8),
@@ -237,22 +234,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final novaLeitura = _simulador.gerarLeituraSimulada();
     
     try {
-      // Salvar no Firebase
+      
       await FirebaseService.salvarLeitura(novaLeitura);
       
-      // Salvar no MySQL (se configurado)
-      // await MySqlService.inserirLeitura(novaLeitura);
+
       
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Nova leitura simulada: $novaLeitura'),
+          content: Text('Nova leitura simulada: $novaLeitura'),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Erro: $e'),
+          content: Text('Erro: $e'),
           backgroundColor: Colors.red,
         ),
       );
