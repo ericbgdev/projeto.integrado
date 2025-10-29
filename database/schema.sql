@@ -1,5 +1,3 @@
--- Estrutura do Data Warehouse (MySQL)
--- Tabela Fato: FATO_LEITURAS
 CREATE TABLE IF NOT EXISTS FATO_LEITURAS (
   ID_Leitura BIGINT AUTO_INCREMENT PRIMARY KEY,
   ID_Sensor INT NOT NULL,
@@ -15,7 +13,6 @@ CREATE TABLE IF NOT EXISTS FATO_LEITURAS (
   Status_Leitura ENUM('Válida', 'Erro', 'Suspeita') DEFAULT 'Válida'
 );
 
--- Dimensão: DIM_FILIAL
 CREATE TABLE IF NOT EXISTS DIM_FILIAL (
   ID_Filial INT AUTO_INCREMENT PRIMARY KEY,
   Nome_Filial VARCHAR(100) NOT NULL,
@@ -27,7 +24,6 @@ CREATE TABLE IF NOT EXISTS DIM_FILIAL (
   CEP VARCHAR(10) NOT NULL
 );
 
--- Dimensão: DIM_SENSOR
 CREATE TABLE IF NOT EXISTS DIM_SENSOR (
   ID_Sensor INT AUTO_INCREMENT PRIMARY KEY,
   Tipo_Sensor VARCHAR(50) NOT NULL,
@@ -37,7 +33,6 @@ CREATE TABLE IF NOT EXISTS DIM_SENSOR (
   Status ENUM('Ativo', 'Inativo', 'Manutenção') DEFAULT 'Ativo'
 );
 
--- Dimensão: DIM_TEMPO
 CREATE TABLE IF NOT EXISTS DIM_TEMPO (
   ID_Data INT PRIMARY KEY,
   Data_Completa DATETIME NOT NULL,
@@ -49,7 +44,6 @@ CREATE TABLE IF NOT EXISTS DIM_TEMPO (
   Periodo_Dia ENUM('Madrugada', 'Manhã', 'Tarde', 'Noite') NOT NULL
 );
 
--- Stored Procedure para inserir leituras
 DELIMITER $$
 CREATE PROCEDURE sp_inserir_leitura(
   IN p_id_sensor INT,
@@ -63,16 +57,12 @@ BEGIN
   DECLARE v_id_data INT;
   DECLARE v_consumo DECIMAL(6,4);
 
-  -- Obter ID da filial do sensor
   SELECT ID_Filial INTO v_id_filial FROM DIM_SENSOR WHERE ID_Sensor = p_id_sensor;
 
-  -- Calcular consumo (0.05 kWh quando lâmpada ligada)
   SET v_consumo = CASE WHEN p_lampada = 1 THEN 0.0500 ELSE 0.0000 END;
 
-  -- Obter ID da dimensão tempo (exemplo simplificado)
   SET v_id_data = UNIX_TIMESTAMP(NOW());
 
-  -- Inserir leitura
   INSERT INTO FATO_LEITURAS (ID_Sensor, ID_Filial, ID_Data, Temperatura, Umidade, Movimento_Detectado, Lampada_Ligada, Consumo_kWh, Timestamp)
   VALUES (p_id_sensor, v_id_filial, v_id_data, p_temperatura, p_umidade, p_movimento, p_lampada, v_consumo, NOW());
 END$$
