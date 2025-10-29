@@ -3,7 +3,7 @@ class DatabaseConfig {
   static const int port = 3306;
   static const String dbName = 'pi-entrega5';
   static const String user = 'root';
-  static const String password = 'sua_senha';
+  static const String password = 'unifeob@123';
 }
 
 class SensorMapping {
