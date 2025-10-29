@@ -64,5 +64,6 @@ class SimuladorService {
   Future<void> _testarConexoes() async {
     print('Testando conexoes...');
     await MySQLService.testarConexao();
+    await FirebaseService.initialize();
   }
 }
