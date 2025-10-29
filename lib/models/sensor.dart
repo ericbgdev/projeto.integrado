@@ -15,7 +15,6 @@ class Sensor {
     required this.status,
   });
 
-  // Converter para Map (ORM)
   Map<String, dynamic> toMap() {
     return {
       'ID_Sensor': id,
@@ -27,7 +26,6 @@ class Sensor {
     };
   }
 
-  // Construir a partir do Map (ORM)
   factory Sensor.fromMap(Map<String, dynamic> map) {
     return Sensor(
       id: map['ID_Sensor'],
