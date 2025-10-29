@@ -19,7 +19,6 @@ class Filial {
     required this.cep,
   });
 
-  // Converter para Map (ORM - Insert/Update)
   Map<String, dynamic> toMap() {
     return {
       'ID_Filial': id,
@@ -33,7 +32,6 @@ class Filial {
     };
   }
 
-  // Construir a partir do Map (ORM - Select)
   factory Filial.fromMap(Map<String, dynamic> map) {
     return Filial(
       id: map['ID_Filial'],
