@@ -31,7 +31,6 @@ class LeituraSensor {
     this.statusLeitura = 'Válida',
   });
 
-  // Converter para Map (ORM - Insert/Update)
   Map<String, dynamic> toMap() {
     return {
       if (idLeitura != null) 'ID_Leitura': idLeitura,
@@ -48,7 +47,6 @@ class LeituraSensor {
     };
   }
 
-  // Construir a partir do Map (ORM - Select)
   factory LeituraSensor.fromMap(Map<String, dynamic> map) {
     return LeituraSensor(
       idLeitura: map['ID_Leitura'],
@@ -72,10 +70,10 @@ class LeituraSensor {
   String toString() {
     String info = '[$filial] $tipoSensor (ID:$idSensor) | ';
     
-    if (temperatura != null) info += '🌡️${temperatura!.toStringAsFixed(1)}°C ';
-    if (umidade != null) info += '💧${umidade!.toStringAsFixed(1)}% ';
-    if (movimentoDetectado) info += '🏃MOVIMENTO ';
-    if (lampadaLigada) info += '💡LÂMPADA ';
+    if (temperatura != null) info += '${temperatura!.toStringAsFixed(1)}°C ';
+    if (umidade != null) info += '${umidade!.toStringAsFixed(1)}% ';
+    if (movimentoDetectado) info += 'MOVIMENTO ';
+    if (lampadaLigada) info += 'LÂMPADA ';
     
     return info;
   }
