@@ -12,7 +12,6 @@ void main() async {
   print('Filiais: Aguai e Casa Branca');
   print('MySQL ORM + Firebase + Dados Excel');
 
-  // Inicializar Firebase
   await FirebaseService.initialize();
   await MySQLService.testarConexao();
   
@@ -39,5 +38,3 @@ void main() async {
     }
   });
 }
-
-// ... (manter métodos demonstrarORM e demonstrarConsultasORM)
