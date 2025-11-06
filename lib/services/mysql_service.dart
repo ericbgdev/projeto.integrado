@@ -10,7 +10,7 @@ class MySQLService {
     port: 3306,
     user: 'root',
     password: 'unifeob@123',
-    db: 'pi-entrega5',
+    db: 'entrega5',
   );
 
   static Future<void> salvarLeitura(LeituraSensor leitura) async {
