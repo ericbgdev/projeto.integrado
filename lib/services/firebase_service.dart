@@ -1,112 +1,80 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart';
+// services/firebase_service.dart
+import 'dart:io';
+import 'dart:convert';
+import '../models/leitura_sensor.dart';
 
 class FirebaseService {
-  static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static final String _firebaseFile = 'firebase_data.json';
+  static Map<String, dynamic> _firebaseData = {
+    'leituras': [],
+    'filiais': [],
+    'sensores': [],
+  };
 
   static Future<void> initialize() async {
+    print('🔥 Inicializando Firebase simulado...');
+    
     try {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "sua-api-key",
-          authDomain: "seu-projeto.firebaseapp.com",
-          projectId: "seu-projeto-id",
-          storageBucket: "seu-projeto.appspot.com",
-          messagingSenderId: "seu-sender-id",
-          appId: "sua-app-id",
-        ),
-      );
-      print('Firebase inicializado com sucesso');
+      final file = File(_firebaseFile);
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        _firebaseData = Map<String, dynamic>.from(json.decode(content));
+        print('✅ Firebase carregado: ${_firebaseData['leituras'].length} leituras');
+      }
     } catch (e) {
-      print('Erro ao inicializar Firebase: $e');
-      rethrow;
+      print('⚠️  Criando novo Firebase...');
+    }
+    
+    await _salvarFirebase();
+  }
+
+  static Future<void> salvarLeituraSimulada(LeituraSensor leitura) async {
+    try {
+      final leituraFirebase = {
+        'id': '${leitura.idSensor}_${leitura.timestamp.millisecondsSinceEpoch}',
+        'idSensor': leitura.idSensor,
+        'idFilial': leitura.idFilial,
+        'filial': leitura.filial,
+        'tipoSensor': leitura.tipoSensor,
+        'localizacao': leitura.localizacao,
+        'temperatura': leitura.temperatura,
+        'umidade': leitura.umidade,
+        'movimentoDetectado': leitura.movimentoDetectado,
+        'lampadaLigada': leitura.lampadaLigada,
+        'consumo_kWh': leitura.lampadaLigada ? 0.05 : 0.0,
+        'timestamp': leitura.timestamp.toIso8601String(),
+        'qualidadeSinal': leitura.qualidadeSinal,
+        'statusLeitura': leitura.statusLeitura,
+        'sincronizadoEm': DateTime.now().toIso8601String(),
+        'fonte': 'Dart_Puro_Simulacao',
+      };
+
+      _firebaseData['leituras'].add(leituraFirebase);
+      await _salvarFirebase();
+      
+      print('🔥 Leitura sincronizada com Firebase: ${leitura.filial}');
+      
+    } catch (e) {
+      print('❌ Erro Firebase: $e');
     }
   }
 
-  static Future<void> salvarLeitura(Map<String, dynamic> dados) async {
+  static Future<void> _salvarFirebase() async {
     try {
-      final docId = '${dados['idSensor']}_${DateTime.now().millisecondsSinceEpoch}';
-      
-      await _firestore
-          .collection('leituras')
-          .doc(docId)
-          .set({
-            'idSensor': dados['idSensor'],
-            'idFilial': dados['idFilial'],
-            'filial': dados['filial'],
-            'temperatura': dados['temperatura'],
-            'umidade': dados['umidade'],
-            'movimentoDetectado': dados['movimentoDetectado'],
-            'lampadaLigada': dados['lampadaLigada'],
-            'consumo_kWh': dados['consumo_kWh'] ?? (dados['lampadaLigada'] ? 0.05 : 0.0),
-            'timestamp': FieldValue.serverTimestamp(),
-            'fonte': dados['fonte'] ?? 'Firebase_Direto',
-            'qualidadeSinal': dados['qualidadeSinal'] ?? 100,
-            'statusLeitura': dados['statusLeitura'] ?? 'Valida',
-            'idLeitura': dados['idLeitura'],
-            'tipoSensor': dados['tipoSensor'],
-            'sincronizadoEm': FieldValue.serverTimestamp(),
-          });
-      
-      print('Firebase: Leitura ${dados['idSensor']} - ${dados['filial']} salva');
+      final file = File(_firebaseFile);
+      await file.writeAsString(json.encode(_firebaseData, indent: 2));
     } catch (e) {
-      print('Erro ao salvar leitura no Firebase: $e');
-      rethrow;
+      print('Erro ao salvar Firebase: $e');
     }
   }
 
-  static Future<void> salvarFilial(Map<String, dynamic> filial) async {
-    try {
-      await _firestore
-          .collection('filiais')
-          .doc(filial['id'].toString())
-          .set({
-            'id': filial['id'],
-            'nome': filial['nome'],
-            'cidade': filial['cidade'],
-            'estado': filial['estado'],
-            'endereco': filial['endereco'],
-            'gerente': filial['gerente'],
-            'telefone': filial['telefone'],
-            'cep': filial['cep'],
-            'importadoEm': FieldValue.serverTimestamp(),
-          });
-      
-      print('Firebase: Filial ${filial['nome']} salva');
-    } catch (e) {
-      print('Erro ao salvar filial no Firebase: $e');
-    }
-  }
-
-  static Future<void> salvarSensor(Map<String, dynamic> sensor) async {
-    try {
-      await _firestore
-          .collection('sensores')
-          .doc(sensor['id'].toString())
-          .set({
-            'id': sensor['id'],
-            'tipo': sensor['tipo'],
-            'modelo': sensor['modelo'],
-            'localizacao': sensor['localizacao'],
-            'idFilial': sensor['idFilial'],
-            'filial': sensor['filial'],
-            'status': sensor['status'],
-            'importadoEm': FieldValue.serverTimestamp(),
-          });
-      
-      print('Firebase: Sensor ${sensor['tipo']} - ${sensor['filial']} salvo');
-    } catch (e) {
-      print('Erro ao salvar sensor no Firebase: $e');
-    }
+  static List<Map<String, dynamic>> getLeiturasFirebase() {
+    return List.from(_firebaseData['leituras']);
   }
 
   static Future<void> testarConexao() async {
-    try {
-      final snapshot = await _firestore.collection('leituras').limit(1).get();
-      print('Firebase: Conectado! ${snapshot.docs.length} leituras encontradas');
-    } catch (e) {
-      print('Firebase Connection Error: $e');
-      rethrow;
-    }
+    print('🔥 Testando conexão com Firebase...');
+    await Future.delayed(Duration(milliseconds: 500));
+    print('✅ Firebase conectado!');
   }
 }
