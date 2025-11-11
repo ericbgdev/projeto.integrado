@@ -1,14 +1,6 @@
-name: pi_entrega5
-description: "Sistema de Monitoramento Packbag - PI 2025"
+name: sistema_monitoramento
+description: Sistema de monitoramento com Dart puro
 version: 1.0.0
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
-
-dependencies:
-  mysql1: ^0.20.0
-  firebase_core: ^2.13.0
-  cloud_firestore: ^4.8.4
-
-dev_dependencies:
-  lints: ^3.0.0
+  sdk: '>=3.0.0 <4.0.0'
