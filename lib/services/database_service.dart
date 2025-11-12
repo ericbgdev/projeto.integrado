@@ -1,175 +1,155 @@
-// services/database_service.dart
-import 'dart:io';
-import 'dart:convert';
+import 'package:mysql1/mysql1.dart';
 import '../models/leitura_sensor.dart';
+import 'firebase_service.dart';
 
 class DatabaseService {
-  static final String _dbFile = 'database.json';
-  static final String _logFile = 'leituras_log.txt';
+  static MySqlConnection? _conn;
+  static bool _isConnected = false;
   
-  // Simular estrutura do banco
-  static Map<String, dynamic> _database = {
-    'DIM_FILIAL': [],
-    'DIM_SENSOR': [],
-    'DIM_TEMPO': [],
-    'FATO_LEITURAS': [],
-  };
+  static final ConnectionSettings _settings = ConnectionSettings(
+    host: 'localhost',
+    port: 3306,
+    user: 'root',
+    password: 'unifeob@123',
+    db: 'entrega5',
+    timeout: Duration(seconds: 30),
+  );
 
-  static Future<void> initialize() async {
-    print('📀 Inicializando banco de dados simulado...');
-    
-    // Carregar dados do arquivo se existir
-    try {
-      final file = File(_dbFile);
-      if (await file.exists()) {
-        final content = await file.readAsString();
-        _database = Map<String, dynamic>.from(json.decode(content));
-        print('✅ Banco carregado: ${_database['FATO_LEITURAS'].length} leituras');
+  // Manter conexão aberta
+  static Future<MySqlConnection> _getConnection() async {
+    if (_conn == null || !_isConnected) {
+      try {
+        _conn = await MySqlConnection.connect(_settings);
+        _isConnected = true;
+      } catch (e) {
+        _isConnected = false;
+        rethrow;
       }
-    } catch (e) {
-      print('⚠️  Criando novo banco...');
     }
-    
-    // Inserir dados iniciais do schema
-    await _inserirDadosIniciais();
+    return _conn!;
   }
 
-  static Future<void> _inserirDadosIniciais() async {
-    if (_database['DIM_FILIAL'].isEmpty) {
-      // Inserir filiais do schema
-      _database['DIM_FILIAL'].addAll([
-        {
-          'ID_Filial': 1,
-          'Nome_Filial': 'Aguai',
-          'Cidade': 'Aguai',
-          'Estado': 'SP',
-          'Endereco': 'Av. Francisco Gonçalves, 409',
-          'Gerente': 'João Silva',
-          'Telefone': '(19) 3652-1234',
-          'CEP': '13868-000'
-        },
-        {
-          'ID_Filial': 2,
-          'Nome_Filial': 'Casa Branca',
-          'Cidade': 'Casa Branca',
-          'Estado': 'SP',
-          'Endereco': 'BLOCO B Estrada Acesso, SP-340',
-          'Gerente': 'Maria Santos',
-          'Telefone': '(19) 3671-5678',
-          'CEP': '13700-000'
-        }
-      ]);
+  static Future<void> testarConexao() async {
+    try {
+      final conn = await _getConnection();
+      print('✅ Conectado ao MySQL: entrega5');
+      
+      // Verificar tabelas (usar maiúsculas como no schema)
+      final resultado = await conn.query('SHOW TABLES');
+      print('📊 Tabelas no banco:');
+      for (final row in resultado) {
+        print('   - ${row[0]}');
+      }
+      
+    } catch (e) {
+      print('❌ Erro ao conectar no MySQL: $e');
+      rethrow;
     }
-
-    if (_database['DIM_SENSOR'].isEmpty) {
-      // Inserir sensores do schema
-      _database['DIM_SENSOR'].addAll([
-        {
-          'ID_Sensor': 1,
-          'Tipo_Sensor': 'Movimento',
-          'Modelo': 'PIR HC-SR501',
-          'Localizacao': 'Entrada Principal',
-          'ID_Filial': 1,
-          'Status': 'Ativo'
-        },
-        {
-          'ID_Sensor': 2,
-          'Tipo_Sensor': 'Temperatura/Umidade',
-          'Modelo': 'DHT11',
-          'Localizacao': 'Sala Principal',
-          'ID_Filial': 1,
-          'Status': 'Ativo'
-        },
-        {
-          'ID_Sensor': 4,
-          'Tipo_Sensor': 'Movimento',
-          'Modelo': 'PIR HC-SR501',
-          'Localizacao': 'Entrada Principal',
-          'ID_Filial': 2,
-          'Status': 'Ativo'
-        },
-        {
-          'ID_Sensor': 5,
-          'Tipo_Sensor': 'Temperatura/Umidade',
-          'Modelo': 'DHT11',
-          'Localizacao': 'Sala Principal',
-          'ID_Filial': 2,
-          'Status': 'Ativo'
-        },
-        {
-          'ID_Sensor': 7,
-          'Tipo_Sensor': 'Iluminacao',
-          'Modelo': 'LED',
-          'Localizacao': 'Entrada Principal',
-          'ID_Filial': 1,
-          'Status': 'Ativo'
-        },
-        {
-          'ID_Sensor': 8,
-          'Tipo_Sensor': 'Iluminacao',
-          'Modelo': 'LED',
-          'Localizacao': 'Entrada Principal',
-          'ID_Filial': 2,
-          'Status': 'Ativo'
-        }
-      ]);
-    }
-
-    await _salvarBanco();
-    print('✅ Dados iniciais inseridos:');
-    print('   - ${_database['DIM_FILIAL'].length} filiais');
-    print('   - ${_database['DIM_SENSOR'].length} sensores');
   }
 
   static Future<void> salvarLeitura(LeituraSensor leitura) async {
     try {
-      // Gerar ID_Data baseado no timestamp (simulando DIM_TEMPO)
-      final idData = leitura.timestamp.millisecondsSinceEpoch;
+      final conn = await _getConnection();
       
-      // Adicionar à dimensão tempo se não existir
-      final periodo = _obterPeriodoDia(leitura.timestamp.hour);
-      final tempoEntry = {
-        'ID_Data': idData,
-        'Data_Completa': leitura.timestamp.toIso8601String(),
-        'Ano': leitura.timestamp.year,
-        'Mes': leitura.timestamp.month,
-        'Dia': leitura.timestamp.day,
-        'DiaSemana': _obterDiaSemana(leitura.timestamp.weekday),
-        'Hora': leitura.timestamp.hour,
-        'Periodo_Dia': periodo,
-      };
+      // Usar a stored procedure COM OS 5 PARÂMETROS CORRETOS
+      await conn.query(
+        'CALL sp_inserir_leitura(?, ?, ?, ?, ?)',
+        [
+          leitura.idSensor,
+          leitura.temperatura,
+          leitura.umidade,
+          leitura.movimentoDetectado ? 1 : 0,
+          leitura.lampadaLigada ? 1 : 0
+        ]
+      );
       
-      if (!_database['DIM_TEMPO'].any((t) => t['ID_Data'] == idData)) {
-        _database['DIM_TEMPO'].add(tempoEntry);
-      }
-
-      // Inserir na fato leituras (simulando stored procedure)
-      final novaLeitura = {
-        'ID_Leitura': DateTime.now().millisecondsSinceEpoch,
-        'ID_Sensor': leitura.idSensor,
-        'ID_Filial': leitura.idFilial,
-        'ID_Data': idData,
-        'Temperatura': leitura.temperatura,
-        'Umidade': leitura.umidade,
-        'Movimento_Detectado': leitura.movimentoDetectado ? 1 : 0,
-        'Lampada_Ligada': leitura.lampadaLigada ? 1 : 0,
-        'Consumo_kWh': leitura.lampadaLigada ? 0.0500 : 0.0000,
-        'Timestamp': leitura.timestamp.toIso8601String(),
-        'Qualidade_Sinal': leitura.qualidadeSinal,
-        'Status_Leitura': leitura.statusLeitura,
-      };
-
-      _database['FATO_LEITURAS'].add(novaLeitura);
-
-      // Salvar no banco e Firebase
-      await _salvarBanco();
-      await _salvarLog(leitura);
+      print('💾 Leitura salva via SP: Sensor ${leitura.idSensor}');
+      
+      // Também salvar no Firebase
       await FirebaseService.salvarLeituraSimulada(leitura);
-
-      print('💾 Leitura salva no banco: Sensor ${leitura.idSensor}');
       
     } catch (e) {
       print('❌ Erro ao salvar leitura: $e');
+      print('🔄 Tentando insert direto...');
+      await _inserirDireto(leitura);
+    }
+  }
+
+  static Future<void> _inserirDireto(LeituraSensor leitura) async {
+    try {
+      final conn = await _getConnection();
+      
+      // Buscar ID_Filial do sensor (MAIÚSCULA)
+      final resultadoFilial = await conn.query(
+        'SELECT ID_Filial FROM DIM_SENSOR WHERE ID_Sensor = ?',
+        [leitura.idSensor]
+      );
+      
+      if (resultadoFilial.isEmpty) {
+        throw Exception('Sensor ${leitura.idSensor} não encontrado');
+      }
+      
+      final idFilial = resultadoFilial.first['ID_Filial'];
+      final idData = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final consumo = leitura.lampadaLigada ? 0.0500 : 0.0000;
+
+      // Inserir na DIM_TEMPO se não existir
+      await _inserirDimTempo(conn, idData, leitura.timestamp);
+
+      // Inserir na FATO_LEITURAS (MAIÚSCULA e SEM ID_Leitura que é AUTO_INCREMENT)
+      await conn.query(
+        '''INSERT INTO FATO_LEITURAS 
+           (ID_Sensor, ID_Filial, ID_Data, Temperatura, Umidade, 
+            Movimento_Detectado, Lampada_Ligada, Consumo_kWh, Timestamp, 
+            Qualidade_Sinal, Status_Leitura)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        [
+          leitura.idSensor,
+          idFilial,
+          idData,
+          leitura.temperatura,
+          leitura.umidade,
+          leitura.movimentoDetectado ? 1 : 0,
+          leitura.lampadaLigada ? 1 : 0,
+          consumo,
+          leitura.timestamp.toIso8601String(),
+          leitura.qualidadeSinal ?? 100,
+          leitura.statusLeitura ?? 'Válida'
+        ]
+      );
+      
+      print('💾 Leitura salva via insert direto');
+      await FirebaseService.salvarLeituraSimulada(leitura);
+      
+    } catch (e) {
+      print('❌ Erro no insert direto: $e');
+      rethrow;
+    }
+  }
+
+  static Future<void> _inserirDimTempo(MySqlConnection conn, int idData, DateTime data) async {
+    try {
+      final periodo = _obterPeriodoDia(data.hour);
+      final diaSemana = _obterDiaSemana(data.weekday);
+      
+      // USAR MAIÚSCULA
+      await conn.query(
+        '''INSERT IGNORE INTO DIM_TEMPO 
+           (ID_Data, Data_Completa, Ano, Mes, Dia, DiaSemana, Hora, Periodo_Dia)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+        [
+          idData,
+          data.toIso8601String(),
+          data.year,
+          data.month,
+          data.day,
+          diaSemana,
+          data.hour,
+          periodo
+        ]
+      );
+    } catch (e) {
+      // Silenciar erro se já existir
     }
   }
 
@@ -185,61 +165,124 @@ class DatabaseService {
     return dias[weekday - 1];
   }
 
-  static Future<void> _salvarBanco() async {
+  // Métodos de consulta (USAR MAIÚSCULAS)
+  static Future<List<Map<String, dynamic>>> getLeituras() async {
     try {
-      final file = File(_dbFile);
-      await file.writeAsString(json.encode(_database, indent: 2));
-    } catch (e) {
-      print('Erro ao salvar banco: $e');
-    }
-  }
-
-  static Future<void> _salvarLog(LeituraSensor leitura) async {
-    try {
-      final file = File(_logFile);
-      final logEntry = '${leitura.timestamp.toIso8601String()} | '
-          'Sensor: ${leitura.idSensor} | '
-          'Filial: ${leitura.filial} | '
-          'Temp: ${leitura.temperatura}°C | '
-          'Umid: ${leitura.umidade}% | '
-          'Mov: ${leitura.movimentoDetectado} | '
-          'Lamp: ${leitura.lampadaLigada}\n';
+      final conn = await _getConnection();
       
-      await file.writeAsString(logEntry, mode: FileMode.append);
+      final resultado = await conn.query('''
+        SELECT fl.*, ds.Tipo_Sensor, ds.Localizacao, df.Nome_Filial
+        FROM FATO_LEITURAS fl
+        JOIN DIM_SENSOR ds ON fl.ID_Sensor = ds.ID_Sensor
+        JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
+        ORDER BY fl.Timestamp DESC
+        LIMIT 50
+      ''');
+      
+      return resultado.map((row) => row.fields).toList();
     } catch (e) {
-      print('Erro ao salvar log: $e');
+      print('❌ Erro ao buscar leituras: $e');
+      return [];
     }
   }
 
-  // Métodos de consulta
-  static List<Map<String, dynamic>> getLeituras() {
-    return List.from(_database['FATO_LEITURAS']);
+  static Future<List<Map<String, dynamic>>> getFiliais() async {
+    try {
+      final conn = await _getConnection();
+      final resultado = await conn.query('SELECT * FROM DIM_FILIAL');
+      return resultado.map((row) => row.fields).toList();
+    } catch (e) {
+      print('❌ Erro ao buscar filiais: $e');
+      return [];
+    }
   }
 
-  static List<Map<String, dynamic>> getFiliais() {
-    return List.from(_database['DIM_FILIAL']);
+  static Future<List<Map<String, dynamic>>> getSensores() async {
+    try {
+      final conn = await _getConnection();
+      final resultado = await conn.query('''
+        SELECT ds.*, df.Nome_Filial 
+        FROM DIM_SENSOR ds 
+        JOIN DIM_FILIAL df ON ds.ID_Filial = df.ID_Filial
+      ''');
+      return resultado.map((row) => row.fields).toList();
+    } catch (e) {
+      print('❌ Erro ao buscar sensores: $e');
+      return [];
+    }
   }
 
-  static List<Map<String, dynamic>> getSensores() {
-    return List.from(_database['DIM_SENSOR']);
+  static Future<Map<String, dynamic>> getEstatisticas() async {
+    try {
+      final conn = await _getConnection();
+      
+      // Total de leituras
+      final totalResult = await conn.query('SELECT COUNT(*) as total FROM FATO_LEITURAS');
+      final total = totalResult.first['total'];
+      
+      // Média temperatura
+      final tempResult = await conn.query(
+        'SELECT AVG(Temperatura) as media FROM FATO_LEITURAS WHERE Temperatura IS NOT NULL'
+      );
+      final mediaTemp = tempResult.first['media'] ?? 0;
+      
+      // Média umidade
+      final umidResult = await conn.query(
+        'SELECT AVG(Umidade) as media FROM FATO_LEITURAS WHERE Umidade IS NOT NULL'
+      );
+      final mediaUmid = umidResult.first['media'] ?? 0;
+      
+      // Total consumo
+      final consumoResult = await conn.query('SELECT SUM(Consumo_kWh) as total FROM FATO_LEITURAS');
+      final consumoTotal = consumoResult.first['total'] ?? 0;
+      
+      // Movimentos detectados
+      final movResult = await conn.query(
+        'SELECT COUNT(*) as total FROM FATO_LEITURAS WHERE Movimento_Detectado = 1'
+      );
+      final movimentos = movResult.first['total'];
+      
+      // Contar filiais e sensores
+      final filiaisResult = await conn.query('SELECT COUNT(*) as total FROM DIM_FILIAL');
+      final totalFiliais = filiaisResult.first['total'];
+      
+      final sensoresResult = await conn.query(
+        'SELECT COUNT(*) as total FROM DIM_SENSOR WHERE Status = "Ativo"'
+      );
+      final totalSensores = sensoresResult.first['total'];
+      
+      return {
+        'total_leituras': total,
+        'media_temperatura': mediaTemp is num ? mediaTemp.toStringAsFixed(1) : '0.0',
+        'media_umidade': mediaUmid is num ? mediaUmid.toStringAsFixed(1) : '0.0',
+        'consumo_total': consumoTotal is num ? consumoTotal.toStringAsFixed(2) : '0.00',
+        'movimentos_detectados': movimentos,
+        'filiais_ativas': totalFiliais,
+        'sensores_ativos': totalSensores,
+      };
+    } catch (e) {
+      print('❌ Erro ao buscar estatísticas: $e');
+      return {
+        'total_leituras': 0,
+        'media_temperatura': '0.0',
+        'media_umidade': '0.0',
+        'consumo_total': '0.00',
+        'movimentos_detectados': 0,
+        'filiais_ativas': 0,
+        'sensores_ativos': 0,
+      };
+    }
   }
 
-  static Map<String, dynamic> getEstatisticas() {
-    final leituras = _database['FATO_LEITURAS'];
-    final temps = leituras.where((l) => l['Temperatura'] != null).map((l) => l['Temperatura']).toList();
-    final umids = leituras.where((l) => l['Umidade'] != null).map((l) => l['Umidade']).toList();
-    
-    final mediaTemp = temps.isNotEmpty ? temps.reduce((a, b) => a + b) / temps.length : 0;
-    final mediaUmid = umids.isNotEmpty ? umids.reduce((a, b) => a + b) / umids.length : 0;
-    
-    return {
-      'total_leituras': leituras.length,
-      'media_temperatura': mediaTemp.toStringAsFixed(1),
-      'media_umidade': mediaUmid.toStringAsFixed(1),
-      'consumo_total': (leituras.where((l) => l['Lampada_Ligada'] == 1).length * 0.05).toStringAsFixed(2),
-      'movimentos_detectados': leituras.where((l) => l['Movimento_Detectado'] == 1).length,
-      'filiais_ativas': _database['DIM_FILIAL'].length,
-      'sensores_ativos': _database['DIM_SENSOR'].length,
-    };
+  // Fechar conexão apenas ao finalizar o programa
+  static Future<void> close() async {
+    try {
+      await _conn?.close();
+      _conn = null;
+      _isConnected = false;
+      print('🔌 Conexão MySQL fechada');
+    } catch (e) {
+      _isConnected = false;
+    }
   }
 }
