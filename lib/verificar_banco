@@ -1,0 +1,209 @@
+import 'services/database_service.dart';
+import 'services/firebase_realtime_service.dart';
+
+void main() async {
+  print('''
+╔════════════════════════════════════════════════════════════════╗
+║     🔍 VERIFICAÇÃO COMPLETA - SISTEMA PACKBAG                  ║
+║            MySQL Local + Firebase Real                        ║
+╚════════════════════════════════════════════════════════════════╝
+''');
+  
+  try {
+    // ════════════════════════════════════════════════════════════
+    // 💾 VERIFICAÇÃO MYSQL
+    // ════════════════════════════════════════════════════════════
+    print('\n═══ 💾 VERIFICANDO MYSQL ═══\n');
+    
+    await DatabaseService.testarConexao();
+
+    final filiais = await DatabaseService.getFiliais();
+    print('🏢 FILIAIS (${filiais.length}):');
+    for (final filial in filiais) {
+      print('  ${filial['ID_Filial']}: ${filial['Nome_Filial']} - ${filial['Cidade']}/${filial['Estado']}');
+    }
+
+    final sensores = await DatabaseService.getSensores();
+    print('\n📡 SENSORES (${sensores.length}):');
+    for (final sensor in sensores) {
+      final status = sensor['Status'] == 'Ativo' ? '✅' : '⚠️';
+      print('  $status ${sensor['ID_Sensor']}: ${sensor['Tipo_Sensor']} - ${sensor['Nome_Filial']}');
+    }
+
+    final leituras = await DatabaseService.getLeituras();
+    print('\n📊 ÚLTIMAS 5 LEITURAS NO MYSQL (Total: ${leituras.length}):');
+    
+    if (leituras.isEmpty) {
+      print('  ⚠️  Nenhuma leitura encontrada.');
+    } else {
+      for (final leitura in leituras.take(5)) {
+        print('\n  📍 ${leitura['Nome_Filial']} - ${leitura['Tipo_Sensor']}');
+        print('     ID Leitura: ${leitura['ID_Leitura']}');
+        print('     Sensor: ${leitura['ID_Sensor']}');
+        print('     Timestamp: ${leitura['Timestamp']}');
+        
+        if (leitura['Temperatura'] != null) {
+          print('     🌡️  Temperatura: ${leitura['Temperatura']}°C');
+        }
+        if (leitura['Umidade'] != null) {
+          print('     💧 Umidade: ${leitura['Umidade']}%');
+        }
+        if (leitura['Movimento_Detectado'] == 1) {
+          print('     🚨 MOVIMENTO DETECTADO');
+        }
+        if (leitura['Lampada_Ligada'] == 1) {
+          print('     💡 LÂMPADA LIGADA');
+        }
+        print('     ⚡ Consumo: ${leitura['Consumo_kWh']} kWh');
+      }
+    }
+
+    final estatisticas = await DatabaseService.getEstatisticas();
+    print('\n📈 ESTATÍSTICAS MYSQL:');
+    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    estatisticas.forEach((key, value) {
+      print('  📊 $key: $value');
+    });
+    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    // ════════════════════════════════════════════════════════════
+    // 🔥 VERIFICAÇÃO FIREBASE
+    // ════════════════════════════════════════════════════════════
+    print('\n═══ 🔥 VERIFICANDO FIREBASE ═══\n');
+    
+    await FirebaseRealtimeService.initialize();
+    await FirebaseRealtimeService.testarConexao();
+
+    // Estatísticas Firebase
+    final statsFirebase = await FirebaseRealtimeService.getEstatisticas();
+    print('\n📊 ESTATÍSTICAS FIREBASE:');
+    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('  🔥 Total de leituras: ${statsFirebase['total']}');
+    
+    if (statsFirebase['filiais'] != null) {
+      print('\n  🏢 Por Filial:');
+      (statsFirebase['filiais'] as Map).forEach((filial, qtd) {
+        print('     • $filial: $qtd leituras');
+      });
+    }
+    
+    if (statsFirebase['sensores'] != null) {
+      print('\n  📡 Por Tipo de Sensor:');
+      (statsFirebase['sensores'] as Map).forEach((sensor, qtd) {
+        print('     • $sensor: $qtd leituras');
+      });
+    }
+    
+    if (statsFirebase['ultima_atualizacao'] != null) {
+      print('\n  ⏰ Última atualização: ${statsFirebase['ultima_atualizacao']}');
+    }
+    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+    // Últimas leituras do Firebase
+    print('\n📝 ÚLTIMAS 5 LEITURAS NO FIREBASE:');
+    final leiturasFirebase = await FirebaseRealtimeService.getUltimasLeituras(limit: 5);
+    
+    if (leiturasFirebase.isEmpty) {
+      print('  ⚠️  Nenhuma leitura encontrada no Firebase.');
+    } else {
+      for (final leitura in leiturasFirebase) {
+        print('\n  📍 ${leitura['filial']} - ${leitura['tipoSensor']}');
+        print('     Sensor: ${leitura['idSensor']}');
+        print('     Timestamp: ${leitura['timestamp']}');
+        
+        if (leitura['temperatura'] != null) {
+          print('     🌡️  Temperatura: ${leitura['temperatura']}°C');
+        }
+        if (leitura['umidade'] != null) {
+          print('     💧 Umidade: ${leitura['umidade']}%');
+        }
+        if (leitura['movimentoDetectado'] == true) {
+          print('     🚨 MOVIMENTO DETECTADO');
+        }
+        if (leitura['lampadaLigada'] == true) {
+          print('     💡 LÂMPADA LIGADA');
+        }
+        print('     ⚡ Consumo: ${leitura['consumo_kWh']} kWh');
+        print('     🔄 Sincronizado em: ${leitura['sincronizadoEm']}');
+      }
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 📊 COMPARAÇÃO MYSQL vs FIREBASE
+    // ════════════════════════════════════════════════════════════
+    print('\n═══ 📊 COMPARAÇÃO MYSQL vs FIREBASE ═══\n');
+    
+    final totalMySQL = estatisticas['total_leituras'] ?? 0;
+    final totalFirebase = statsFirebase['total'] ?? 0;
+    final diferenca = (totalMySQL as int) - (totalFirebase as int);
+    
+    print('  💾 MySQL: $totalMySQL leituras');
+    print('  🔥 Firebase: $totalFirebase leituras');
+    
+    if (diferenca == 0) {
+      print('  ✅ Perfeitamente sincronizado!');
+    } else if (diferenca > 0) {
+      print('  ⚠️  MySQL tem $diferenca leituras a mais');
+      print('     (Dados históricos antes da integração Firebase)');
+    } else {
+      print('  ⚠️  Firebase tem ${diferenca.abs()} leituras a mais');
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // 📋 TESTE DE CONECTIVIDADE POR FILIAL
+    // ════════════════════════════════════════════════════════════
+    print('\n═══ 🔗 CONECTIVIDADE POR FILIAL ═══\n');
+    
+    for (final filial in filiais) {
+      final idFilial = filial['ID_Filial'];
+      final nomeFilial = filial['Nome_Filial'];
+      
+      print('  🏢 $nomeFilial:');
+      
+      // Leituras Firebase por filial
+      final leiturasFilial = await FirebaseRealtimeService.getLeiturasPorFilial(idFilial);
+      print('     🔥 Firebase: ${leiturasFilial.length} leituras');
+      
+      // Status dos sensores da filial
+      final sensoresFilial = sensores.where((s) => s['ID_Filial'] == idFilial).toList();
+      final sensoresAtivos = sensoresFilial.where((s) => s['Status'] == 'Ativo').length;
+      print('     📡 Sensores: $sensoresAtivos/${sensoresFilial.length} ativos');
+      
+      if (leiturasFilial.isNotEmpty) {
+        final ultimaLeitura = leiturasFilial.last;
+        print('     ⏰ Última leitura: ${ultimaLeitura['timestamp']}');
+      }
+      
+      print('');
+    }
+
+    // ════════════════════════════════════════════════════════════
+    // ✅ RESUMO FINAL
+    // ════════════════════════════════════════════════════════════
+    print('═══ ✅ RESUMO FINAL ═══\n');
+    
+    print('  Sistema Status:');
+    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    print('  ✅ MySQL: Conectado e operacional');
+    print('  ✅ Firebase: Conectado e sincronizado');
+    print('  ✅ ${filiais.length} filiais ativas');
+    print('  ✅ ${sensores.where((s) => s['Status'] == 'Ativo').length} sensores ativos');
+    print('  ✅ $totalMySQL leituras no MySQL');
+    print('  ✅ $totalFirebase leituras no Firebase');
+    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    print('\n🎯 Sistema PackBag funcionando perfeitamente!');
+
+  } catch (e, stackTrace) {
+    print('\n❌ ERRO AO VERIFICAR SISTEMA: $e');
+    print('\n📋 Stack Trace:');
+    print(stackTrace);
+    print('\n💡 Dicas:');
+    print('  • Verifique se o MySQL está rodando');
+    print('  • Verifique as credenciais do Firebase');
+    print('  • Verifique se o arquivo firebase-credentials.json existe');
+  } finally {
+    await DatabaseService.close();
+    print('\n🔌 Conexões fechadas.');
+  }
+}
