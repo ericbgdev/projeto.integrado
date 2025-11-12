@@ -1,371 +1,123 @@
-CREATE DATABASE IF NOT EXISTS sistema_monitoramento;
-USE sistema_monitoramento;
+-- MySQL Workbench Forward Engineering
 
-CREATE TABLE IF NOT EXISTS DIM_FILIAL (
-  ID_Filial INT AUTO_INCREMENT PRIMARY KEY,
-  Nome_Filial VARCHAR(100) NOT NULL,
-  Cidade VARCHAR(50) NOT NULL,
-  Estado CHAR(2) NOT NULL,
-  Endereco VARCHAR(200) NOT NULL,
-  Gerente VARCHAR(100) NOT NULL,
-  Telefone VARCHAR(20) NOT NULL,
-  CEP VARCHAR(10) NOT NULL
-);
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
-CREATE TABLE IF NOT EXISTS DIM_SENSOR (
-  ID_Sensor INT AUTO_INCREMENT PRIMARY KEY,
-  Tipo_Sensor VARCHAR(50) NOT NULL,
-  Modelo VARCHAR(50) NOT NULL,
-  Localizacao VARCHAR(100) NOT NULL,
-  ID_Filial INT NOT NULL,
-  Status ENUM('Ativo', 'Inativo', 'Manutenção') DEFAULT 'Ativo',
-  FOREIGN KEY (ID_Filial) REFERENCES DIM_FILIAL(ID_Filial)
-);
+-- -----------------------------------------------------
+-- Schema mydb
+-- -----------------------------------------------------
+-- -----------------------------------------------------
+-- Schema entrega5
+-- -----------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS DIM_TEMPO (
-  ID_Data INT PRIMARY KEY,
-  Data_Completa DATETIME NOT NULL,
-  Ano SMALLINT NOT NULL,
-  Mes TINYINT NOT NULL,
-  Dia TINYINT NOT NULL,
-  DiaSemana VARCHAR(15) NOT NULL,
-  Hora TINYINT NOT NULL,
-  Periodo_Dia ENUM('Madrugada', 'Manhã', 'Tarde', 'Noite') NOT NULL
-);
+-- -----------------------------------------------------
+-- Schema entrega5
+-- -----------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS `entrega5` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci ;
+USE `entrega5` ;
 
-CREATE TABLE IF NOT EXISTS FATO_LEITURAS (
-  ID_Leitura BIGINT AUTO_INCREMENT PRIMARY KEY,
-  ID_Sensor INT NOT NULL,
-  ID_Filial INT NOT NULL,
-  ID_Data INT NOT NULL,
-  Temperatura DECIMAL(4,1),
-  Umidade DECIMAL(4,1),
-  Movimento_Detectado TINYINT DEFAULT 0,
-  Lampada_Ligada TINYINT DEFAULT 0,
-  Consumo_kWh DECIMAL(6,4) DEFAULT 0.0000,
-  Timestamp DATETIME NOT NULL,
-  Qualidade_Sinal TINYINT DEFAULT 100,
-  Status_Leitura ENUM('Válida', 'Erro', 'Suspeita') DEFAULT 'Válida',
-  FOREIGN KEY (ID_Sensor) REFERENCES DIM_SENSOR(ID_Sensor),
-  FOREIGN KEY (ID_Filial) REFERENCES DIM_FILIAL(ID_Filial),
-  FOREIGN KEY (ID_Data) REFERENCES DIM_TEMPO(ID_Data)
-);
+-- -----------------------------------------------------
+-- Table `entrega5`.`dim_filial`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `entrega5`.`dim_filial` (
+  `ID_Filial` INT NOT NULL AUTO_INCREMENT,
+  `Nome_Filial` VARCHAR(100) NOT NULL,
+  `Cidade` VARCHAR(50) NOT NULL,
+  `Estado` CHAR(2) NOT NULL,
+  `Endereco` VARCHAR(200) NOT NULL,
+  `Gerente` VARCHAR(100) NOT NULL,
+  `Telefone` VARCHAR(20) NOT NULL,
+  `CEP` VARCHAR(10) NOT NULL,
+  PRIMARY KEY (`ID_Filial`))
+ENGINE = InnoDB
+AUTO_INCREMENT = 3
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
-INSERT INTO DIM_FILIAL (ID_Filial, Nome_Filial, Cidade, Estado, Endereco, Gerente, Telefone, CEP) VALUES
-(1, 'Aguai', 'Aguai', 'SP', 'Av. Francisco Gonçalves, 409', 'João Silva', '(19) 3652-1234', '13868-000'),
-(2, 'Casa Branca', 'Casa Branca', 'SP', 'BLOCO B Estrada Acesso, SP-340', 'Maria Santos', '(19) 3671-5678', '13700-000');
 
-INSERT INTO DIM_SENSOR (ID_Sensor, Tipo_Sensor, Modelo, Localizacao, ID_Filial, Status) VALUES
-(1, 'Movimento', 'PIR HC-SR501', 'Entrada Principal', 1, 'Ativo'),
-(2, 'Temperatura/Umidade', 'DHT11', 'Sala Principal', 1, 'Ativo'),
-(4, 'Movimento', 'PIR HC-SR501', 'Entrada Principal', 2, 'Ativo'),
-(5, 'Temperatura/Umidade', 'DHT11', 'Sala Principal', 2, 'Ativo'),
-(7, 'Iluminacao', 'LED', 'Entrada Principal', 1, 'Ativo'),
-(8, 'Iluminacao', 'LED', 'Entrada Principal', 2, 'Ativo');
+-- -----------------------------------------------------
+-- Table `entrega5`.`dim_sensor`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `entrega5`.`dim_sensor` (
+  `ID_Sensor` INT NOT NULL AUTO_INCREMENT,
+  `Tipo_Sensor` VARCHAR(50) NOT NULL,
+  `Modelo` VARCHAR(50) NOT NULL,
+  `Localizacao` VARCHAR(100) NOT NULL,
+  `ID_Filial` INT NOT NULL,
+  `Status` ENUM('Ativo', 'Inativo', 'Manutenção') NULL DEFAULT 'Ativo',
+  PRIMARY KEY (`ID_Sensor`),
+  INDEX `ID_Filial` (`ID_Filial` ASC) VISIBLE,
+  CONSTRAINT `dim_sensor_ibfk_1`
+    FOREIGN KEY (`ID_Filial`)
+    REFERENCES `entrega5`.`dim_filial` (`ID_Filial`))
+ENGINE = InnoDB
+AUTO_INCREMENT = 9
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
 
-INSERT INTO DIM_TEMPO (ID_Data, Data_Completa, Ano, Mes, Dia, DiaSemana, Hora, Periodo_Dia) VALUES
-(1, '2024-11-01 08:00:00', 2024, 11, 1, 'Quinta', 8, 'Manhã'),
-(2, '2024-11-01 08:30:00', 2024, 11, 1, 'Quinta', 8, 'Manhã'),
-(3, '2024-11-01 09:00:00', 2024, 11, 1, 'Quinta', 9, 'Manhã'),
-(4, '2024-11-01 09:30:00', 2024, 11, 1, 'Quinta', 9, 'Manhã'),
-(5, '2024-11-01 10:00:00', 2024, 11, 1, 'Quinta', 10, 'Manhã'),
-(6, '2024-11-01 10:30:00', 2024, 11, 1, 'Quinta', 10, 'Manhã'),
-(7, '2024-11-01 11:00:00', 2024, 11, 1, 'Quinta', 11, 'Manhã'),
-(8, '2024-11-01 11:30:00', 2024, 11, 1, 'Quinta', 11, 'Manhã'),
-(9, '2024-11-01 12:00:00', 2024, 11, 1, 'Quinta', 12, 'Tarde'),
-(10, '2024-11-01 12:30:00', 2024, 11, 1, 'Quinta', 12, 'Tarde'),
-(11, '2024-11-01 13:00:00', 2024, 11, 1, 'Quinta', 13, 'Tarde'),
-(12, '2024-11-01 13:30:00', 2024, 11, 1, 'Quinta', 13, 'Tarde'),
-(13, '2024-11-01 14:00:00', 2024, 11, 1, 'Quinta', 14, 'Tarde'),
-(14, '2024-11-01 14:30:00', 2024, 11, 1, 'Quinta', 14, 'Tarde'),
-(15, '2024-11-01 15:00:00', 2024, 11, 1, 'Quinta', 15, 'Tarde'),
-(16, '2024-11-01 15:30:00', 2024, 11, 1, 'Quinta', 15, 'Tarde'),
-(17, '2024-11-01 16:00:00', 2024, 11, 1, 'Quinta', 16, 'Tarde'),
-(18, '2024-11-01 16:30:00', 2024, 11, 1, 'Quinta', 16, 'Tarde'),
-(19, '2024-11-01 17:00:00', 2024, 11, 1, 'Quinta', 17, 'Tarde'),
-(20, '2024-11-01 17:30:00', 2024, 11, 1, 'Quinta', 17, 'Tarde'),
-(21, '2024-11-01 18:00:00', 2024, 11, 1, 'Quinta', 18, 'Noite'),
-(22, '2024-11-01 18:30:00', 2024, 11, 1, 'Quinta', 18, 'Noite'),
-(23, '2024-11-01 19:00:00', 2024, 11, 1, 'Quinta', 19, 'Noite'),
-(24, '2024-11-01 19:30:00', 2024, 11, 1, 'Quinta', 19, 'Noite'),
-(25, '2024-11-01 20:00:00', 2024, 11, 1, 'Quinta', 20, 'Noite'),
-(26, '2024-11-01 20:30:00', 2024, 11, 1, 'Quinta', 20, 'Noite'),
-(27, '2024-11-01 21:00:00', 2024, 11, 1, 'Quinta', 21, 'Noite'),
-(28, '2024-11-01 21:30:00', 2024, 11, 1, 'Quinta', 21, 'Noite'),
-(29, '2024-11-01 22:00:00', 2024, 11, 1, 'Quinta', 22, 'Noite'),
-(30, '2024-11-01 22:30:00', 2024, 11, 1, 'Quinta', 22, 'Noite'),
-(31, '2024-11-01 23:00:00', 2024, 11, 1, 'Quinta', 23, 'Noite'),
-(32, '2024-11-01 23:30:00', 2024, 11, 1, 'Quinta', 23, 'Noite'),
-(33, '2024-11-02 00:00:00', 2024, 11, 2, 'Sexta', 0, 'Madrugada'),
-(34, '2024-11-02 00:30:00', 2024, 11, 2, 'Sexta', 0, 'Madrugada'),
-(35, '2024-11-02 01:00:00', 2024, 11, 2, 'Sexta', 1, 'Madrugada'),
-(36, '2024-11-02 01:30:00', 2024, 11, 2, 'Sexta', 1, 'Madrugada'),
-(37, '2024-11-02 02:00:00', 2024, 11, 2, 'Sexta', 2, 'Madrugada'),
-(38, '2024-11-02 02:30:00', 2024, 11, 2, 'Sexta', 2, 'Madrugada'),
-(39, '2024-11-02 03:00:00', 2024, 11, 2, 'Sexta', 3, 'Madrugada'),
-(40, '2024-11-02 03:30:00', 2024, 11, 2, 'Sexta', 3, 'Madrugada'),
-(41, '2024-11-02 04:00:00', 2024, 11, 2, 'Sexta', 4, 'Madrugada'),
-(42, '2024-11-02 04:30:00', 2024, 11, 2, 'Sexta', 4, 'Madrugada'),
-(43, '2024-11-02 05:00:00', 2024, 11, 2, 'Sexta', 5, 'Madrugada'),
-(44, '2024-11-02 05:30:00', 2024, 11, 2, 'Sexta', 5, 'Madrugada'),
-(45, '2024-11-02 06:00:00', 2024, 11, 2, 'Sexta', 6, 'Manhã'),
-(46, '2024-11-02 06:30:00', 2024, 11, 2, 'Sexta', 6, 'Manhã'),
-(47, '2024-11-02 07:00:00', 2024, 11, 2, 'Sexta', 7, 'Manhã'),
-(48, '2024-11-02 07:30:00', 2024, 11, 2, 'Sexta', 7, 'Manhã'),
-(49, '2024-11-02 08:00:00', 2024, 11, 2, 'Sexta', 8, 'Manhã'),
-(50, '2024-11-02 08:30:00', 2024, 11, 2, 'Sexta', 8, 'Manhã'),
-(51, '2024-11-02 09:00:00', 2024, 11, 2, 'Sexta', 9, 'Manhã'),
-(52, '2024-11-02 09:30:00', 2024, 11, 2, 'Sexta', 9, 'Manhã'),
-(53, '2024-11-02 10:00:00', 2024, 11, 2, 'Sexta', 10, 'Manhã'),
-(54, '2024-11-02 10:30:00', 2024, 11, 2, 'Sexta', 10, 'Manhã'),
-(55, '2024-11-02 11:00:00', 2024, 11, 2, 'Sexta', 11, 'Manhã'),
-(56, '2024-11-02 11:30:00', 2024, 11, 2, 'Sexta', 11, 'Manhã'),
-(57, '2024-11-02 12:00:00', 2024, 11, 2, 'Sexta', 12, 'Tarde'),
-(58, '2024-11-02 12:30:00', 2024, 11, 2, 'Sexta', 12, 'Tarde'),
-(59, '2024-11-02 13:00:00', 2024, 11, 2, 'Sexta', 13, 'Tarde'),
-(60, '2024-11-02 13:30:00', 2024, 11, 2, 'Sexta', 13, 'Tarde'),
-(61, '2024-11-02 14:00:00', 2024, 11, 2, 'Sexta', 14, 'Tarde'),
-(62, '2024-11-02 14:30:00', 2024, 11, 2, 'Sexta', 14, 'Tarde'),
-(63, '2024-11-02 15:00:00', 2024, 11, 2, 'Sexta', 15, 'Tarde'),
-(64, '2024-11-02 15:30:00', 2024, 11, 2, 'Sexta', 15, 'Tarde'),
-(65, '2024-11-02 16:00:00', 2024, 11, 2, 'Sexta', 16, 'Tarde'),
-(66, '2024-11-02 16:30:00', 2024, 11, 2, 'Sexta', 16, 'Tarde'),
-(67, '2024-11-02 17:00:00', 2024, 11, 2, 'Sexta', 17, 'Tarde'),
-(68, '2024-11-02 17:30:00', 2024, 11, 2, 'Sexta', 17, 'Tarde'),
-(69, '2024-11-02 18:00:00', 2024, 11, 2, 'Sexta', 18, 'Noite'),
-(70, '2024-11-02 18:30:00', 2024, 11, 2, 'Sexta', 18, 'Noite'),
-(71, '2024-11-02 19:00:00', 2024, 11, 2, 'Sexta', 19, 'Noite'),
-(72, '2024-11-02 19:30:00', 2024, 11, 2, 'Sexta', 19, 'Noite'),
-(73, '2024-11-02 20:00:00', 2024, 11, 2, 'Sexta', 20, 'Noite'),
-(74, '2024-11-02 20:30:00', 2024, 11, 2, 'Sexta', 20, 'Noite'),
-(75, '2024-11-02 21:00:00', 2024, 11, 2, 'Sexta', 21, 'Noite'),
-(76, '2024-11-02 21:30:00', 2024, 11, 2, 'Sexta', 21, 'Noite'),
-(77, '2024-11-02 22:00:00', 2024, 11, 2, 'Sexta', 22, 'Noite'),
-(78, '2024-11-02 22:30:00', 2024, 11, 2, 'Sexta', 22, 'Noite'),
-(79, '2024-11-02 23:00:00', 2024, 11, 2, 'Sexta', 23, 'Noite'),
-(80, '2024-11-02 23:30:00', 2024, 11, 2, 'Sexta', 23, 'Noite'),
-(81, '2024-11-03 00:00:00', 2024, 11, 3, 'Sábado', 0, 'Madrugada'),
-(82, '2024-11-03 00:30:00', 2024, 11, 3, 'Sábado', 0, 'Madrugada'),
-(83, '2024-11-03 01:00:00', 2024, 11, 3, 'Sábado', 1, 'Madrugada'),
-(84, '2024-11-03 01:30:00', 2024, 11, 3, 'Sábado', 1, 'Madrugada'),
-(85, '2024-11-03 02:00:00', 2024, 11, 3, 'Sábado', 2, 'Madrugada'),
-(86, '2024-11-03 02:30:00', 2024, 11, 3, 'Sábado', 2, 'Madrugada'),
-(87, '2024-11-03 03:00:00', 2024, 11, 3, 'Sábado', 3, 'Madrugada'),
-(88, '2024-11-03 03:30:00', 2024, 11, 3, 'Sábado', 3, 'Madrugada'),
-(89, '2024-11-03 04:00:00', 2024, 11, 3, 'Sábado', 4, 'Madrugada'),
-(90, '2024-11-03 04:30:00', 2024, 11, 3, 'Sábado', 4, 'Madrugada'),
-(91, '2024-11-03 05:00:00', 2024, 11, 3, 'Sábado', 5, 'Madrugada'),
-(92, '2024-11-03 05:30:00', 2024, 11, 3, 'Sábado', 5, 'Madrugada'),
-(93, '2024-11-03 06:00:00', 2024, 11, 3, 'Sábado', 6, 'Manhã'),
-(94, '2024-11-03 06:30:00', 2024, 11, 3, 'Sábado', 6, 'Manhã'),
-(95, '2024-11-03 07:00:00', 2024, 11, 3, 'Sábado', 7, 'Manhã'),
-(96, '2024-11-03 07:30:00', 2024, 11, 3, 'Sábado', 7, 'Manhã'),
-(97, '2024-11-03 08:00:00', 2024, 11, 3, 'Sábado', 8, 'Manhã'),
-(98, '2024-11-03 08:30:00', 2024, 11, 3, 'Sábado', 8, 'Manhã'),
-(99, '2024-11-03 09:00:00', 2024, 11, 3, 'Sábado', 9, 'Manhã');
 
-INSERT INTO FATO_LEITURAS (ID_Leitura, ID_Sensor, ID_Filial, ID_Data, Temperatura, Umidade, Movimento_Detectado, Lampada_Ligada, Consumo_kWh, Timestamp) VALUES
-(1, 2, 1, 1, 22.5, 62.5, 0, 0, 0.0000, '2024-11-01 08:00:00'),
-(2, 1, 1, 1, NULL, NULL, 1, 1, 0.0500, '2024-11-01 08:00:00'),
-(3, 7, 1, 1, NULL, NULL, 0, 1, 0.0500, '2024-11-01 08:00:00'),
-(4, 5, 2, 1, 24.2, 58.2, 0, 0, 0.0000, '2024-11-01 08:00:00'),
-(5, 4, 2, 1, NULL, NULL, 1, 1, 0.0500, '2024-11-01 08:00:00'),
-(6, 8, 2, 1, NULL, NULL, 0, 1, 0.0500, '2024-11-01 08:00:00'),
-(7, 2, 1, 2, 22.8, 61.9, 0, 0, 0.0000, '2024-11-01 08:30:00'),
-(8, 1, 1, 2, NULL, NULL, 0, 0, 0.0000, '2024-11-01 08:30:00'),
-(9, 7, 1, 2, NULL, NULL, 0, 0, 0.0000, '2024-11-01 08:30:00'),
-(10, 5, 2, 2, 24.6, 57.8, 0, 0, 0.0000, '2024-11-01 08:30:00'),
-(11, 4, 2, 2, NULL, NULL, 1, 1, 0.0500, '2024-11-01 08:30:00'),
-(12, 8, 2, 2, NULL, NULL, 0, 1, 0.0500, '2024-11-01 08:30:00'),
-(13, 2, 1, 3, 23.1, 61.3, 0, 0, 0.0000, '2024-11-01 09:00:00'),
-(14, 1, 1, 3, NULL, NULL, 1, 1, 0.0500, '2024-11-01 09:00:00'),
-(15, 7, 1, 3, NULL, NULL, 0, 1, 0.0500, '2024-11-01 09:00:00'),
-(16, 5, 2, 3, 25.0, 57.4, 0, 0, 0.0000, '2024-11-01 09:00:00'),
-(17, 4, 2, 3, NULL, NULL, 1, 1, 0.0500, '2024-11-01 09:00:00'),
-(18, 8, 2, 3, NULL, NULL, 0, 1, 0.0500, '2024-11-01 09:00:00'),
-(19, 2, 1, 4, 23.4, 60.8, 0, 0, 0.0000, '2024-11-01 09:30:00'),
-(20, 1, 1, 4, NULL, NULL, 0, 0, 0.0000, '2024-11-01 09:30:00'),
-(21, 7, 1, 4, NULL, NULL, 0, 0, 0.0000, '2024-11-01 09:30:00'),
-(22, 5, 2, 4, 25.3, 57.0, 0, 0, 0.0000, '2024-11-01 09:30:00'),
-(23, 4, 2, 4, NULL, NULL, 1, 1, 0.0500, '2024-11-01 09:30:00'),
-(24, 8, 2, 4, NULL, NULL, 0, 1, 0.0500, '2024-11-01 09:30:00'),
-(25, 2, 1, 5, 23.8, 60.2, 0, 0, 0.0000, '2024-11-01 10:00:00'),
-(26, 1, 1, 5, NULL, NULL, 1, 1, 0.0500, '2024-11-01 10:00:00'),
-(27, 7, 1, 5, NULL, NULL, 0, 1, 0.0500, '2024-11-01 10:00:00'),
-(28, 5, 2, 5, 25.7, 56.6, 0, 0, 0.0000, '2024-11-01 10:00:00'),
-(29, 4, 2, 5, NULL, NULL, 1, 1, 0.0500, '2024-11-01 10:00:00'),
-(30, 8, 2, 5, NULL, NULL, 0, 1, 0.0500, '2024-11-01 10:00:00'),
-(31, 4, 2, 6, NULL, NULL, 1, 1, 0.0500, '2024-11-01 10:30:00'),
-(32, 5, 2, 6, 31.0, 49.1, 0, 0, 0.0000, '2024-11-01 10:30:00'),
-(33, 2, 1, 6, NULL, NULL, 0, 0, 0.0000, '2024-11-01 10:30:00'),
-(34, 1, 2, 6, 24.5, 63.7, 0, 0, 0.0000, '2024-11-01 10:30:00'),
-(35, 8, 2, 6, NULL, NULL, 0, 0, 0.0000, '2024-11-01 10:30:00'),
-(36, 4, 2, 6, NULL, NULL, 0, 0, 0.0000, '2024-11-01 10:30:00'),
-(37, 4, 1, 7, 31.4, 46.2, 0, 0, 0.0000, '2024-11-01 11:00:00'),
-(38, 5, 1, 7, NULL, NULL, 0, 0, 0.0000, '2024-11-01 11:00:00'),
-(39, 1, 1, 7, NULL, NULL, 0, 0, 0.0000, '2024-11-01 11:00:00'),
-(40, 5, 2, 7, NULL, NULL, 0, 0, 0.0000, '2024-11-01 11:00:00'),
-(41, 1, 2, 7, NULL, NULL, 0, 0, 0.0000, '2024-11-01 11:00:00'),
-(42, 2, 1, 7, 21.5, 65.7, 0, 0, 0.0000, '2024-11-01 11:00:00'),
-(43, 8, 1, 8, 31.9, 44.3, 1, 1, 0.0500, '2024-11-01 11:30:00'),
-(44, 2, 1, 8, 19.0, 56.0, 1, 1, 0.0500, '2024-11-01 11:30:00'),
-(45, 4, 2, 8, 22.8, 50.0, 0, 0, 0.0000, '2024-11-01 11:30:00'),
-(46, 7, 1, 8, 22.4, 50.1, 1, 1, 0.0500, '2024-11-01 11:30:00'),
-(47, 1, 1, 8, NULL, NULL, 1, 1, 0.0500, '2024-11-01 11:30:00'),
-(48, 4, 2, 8, 20.4, 47.2, 1, 1, 0.0500, '2024-11-01 11:30:00'),
-(49, 5, 1, 9, NULL, NULL, 0, 0, 0.0000, '2024-11-01 12:00:00'),
-(50, 2, 1, 9, NULL, NULL, 0, 0, 0.0000, '2024-11-01 12:00:00'),
-(51, 4, 1, 9, 23.0, 72.3, 1, 1, 0.0500, '2024-11-01 12:00:00'),
-(52, 2, 1, 9, 28.1, 83.0, 0, 0, 0.0000, '2024-11-01 12:00:00'),
-(53, 7, 1, 9, NULL, NULL, 0, 0, 0.0000, '2024-11-01 12:00:00'),
-(54, 8, 1, 9, NULL, NULL, 0, 0, 0.0000, '2024-11-01 12:00:00'),
-(55, 5, 1, 10, NULL, NULL, 0, 0, 0.0000, '2024-11-01 12:30:00'),
-(56, 7, 1, 10, 28.3, 62.4, 0, 0, 0.0000, '2024-11-01 12:30:00'),
-(57, 8, 2, 10, 19.8, 62.1, 1, 1, 0.0500, '2024-11-01 12:30:00'),
-(58, 1, 1, 10, NULL, NULL, 1, 1, 0.0500, '2024-11-01 12:30:00'),
-(59, 7, 2, 10, NULL, NULL, 0, 0, 0.0000, '2024-11-01 12:30:00'),
-(60, 5, 2, 10, NULL, NULL, 0, 0, 0.0000, '2024-11-01 12:30:00'),
-(61, 7, 2, 11, NULL, NULL, 1, 1, 0.0500, '2024-11-01 13:00:00'),
-(62, 4, 1, 11, 23.7, 75.1, 1, 1, 0.0500, '2024-11-01 13:00:00'),
-(63, 2, 1, 11, 24.7, 67.5, 0, 0, 0.0000, '2024-11-01 13:00:00'),
-(64, 7, 1, 11, NULL, NULL, 1, 1, 0.0500, '2024-11-01 13:00:00'),
-(65, 2, 1, 11, NULL, NULL, 0, 0, 0.0000, '2024-11-01 13:00:00'),
-(66, 5, 2, 11, 28.1, 52.8, 1, 1, 0.0500, '2024-11-01 13:00:00'),
-(67, 4, 1, 12, 23.3, 68.6, 0, 0, 0.0000, '2024-11-01 13:30:00'),
-(68, 4, 1, 12, 21.7, 82.4, 1, 1, 0.0500, '2024-11-01 13:30:00'),
-(69, 7, 2, 12, NULL, NULL, 0, 0, 0.0000, '2024-11-01 13:30:00'),
-(70, 2, 1, 12, 28.5, 72.6, 0, 0, 0.0000, '2024-11-01 13:30:00'),
-(71, 5, 2, 12, 25.7, 45.6, 0, 0, 0.0000, '2024-11-01 13:30:00'),
-(72, 2, 2, 12, 20.1, 41.3, 0, 0, 0.0000, '2024-11-01 13:30:00'),
-(73, 4, 1, 13, NULL, NULL, 1, 1, 0.0500, '2024-11-01 14:00:00'),
-(74, 5, 1, 13, NULL, NULL, 0, 0, 0.0000, '2024-11-01 14:00:00'),
-(75, 2, 2, 13, 18.2, 65.8, 1, 1, 0.0500, '2024-11-01 14:00:00'),
-(76, 2, 1, 13, 27.9, 79.2, 1, 1, 0.0500, '2024-11-01 14:00:00'),
-(77, 2, 2, 13, NULL, NULL, 1, 1, 0.0500, '2024-11-01 14:00:00'),
-(78, 4, 1, 13, 23.5, 82.6, 0, 0, 0.0000, '2024-11-01 14:00:00'),
-(79, 2, 2, 14, NULL, NULL, 0, 0, 0.0000, '2024-11-01 14:30:00'),
-(80, 4, 1, 14, 29.9, 40.1, 1, 1, 0.0500, '2024-11-01 14:30:00'),
-(81, 4, 1, 14, 28.9, 62.3, 1, 1, 0.0500, '2024-11-01 14:30:00'),
-(82, 7, 2, 14, 31.0, 72.0, 0, 0, 0.0000, '2024-11-01 14:30:00'),
-(83, 1, 1, 14, NULL, NULL, 0, 0, 0.0000, '2024-11-01 14:30:00'),
-(84, 7, 2, 14, 21.5, 40.2, 0, 0, 0.0000, '2024-11-01 14:30:00'),
-(85, 4, 2, 15, 23.8, 35.2, 1, 1, 0.0500, '2024-11-01 15:00:00'),
-(86, 1, 1, 15, NULL, NULL, 0, 0, 0.0000, '2024-11-01 15:00:00'),
-(87, 5, 1, 15, NULL, NULL, 0, 0, 0.0000, '2024-11-01 15:00:00'),
-(88, 5, 2, 15, 19.0, 79.7, 1, 1, 0.0500, '2024-11-01 15:00:00'),
-(89, 2, 1, 15, 21.0, 76.5, 0, 0, 0.0000, '2024-11-01 15:00:00'),
-(90, 4, 2, 15, NULL, NULL, 1, 1, 0.0500, '2024-11-01 15:00:00'),
-(91, 4, 1, 16, NULL, NULL, 0, 0, 0.0000, '2024-11-01 15:30:00'),
-(92, 8, 1, 16, NULL, NULL, 0, 0, 0.0000, '2024-11-01 15:30:00'),
-(93, 5, 2, 16, 31.4, 83.4, 1, 1, 0.0500, '2024-11-01 15:30:00'),
-(94, 8, 1, 16, NULL, NULL, 1, 1, 0.0500, '2024-11-01 15:30:00'),
-(95, 1, 2, 16, NULL, NULL, 1, 1, 0.0500, '2024-11-01 15:30:00'),
-(96, 1, 1, 16, 28.9, 80.6, 0, 0, 0.0000, '2024-11-01 15:30:00'),
-(97, 1, 2, 17, 26.1, 45.9, 0, 0, 0.0000, '2024-11-01 16:00:00'),
-(98, 4, 2, 17, 26.5, 71.3, 0, 0, 0.0000, '2024-11-01 16:00:00'),
-(99, 2, 1, 17, NULL, NULL, 1, 1, 0.0500, '2024-11-01 16:00:00'),
-(100, 7, 2, 17, 19.1, 72.1, 0, 0, 0.0000, '2024-11-01 16:00:00'),
-(101, 7, 2, 17, 24.6, 53.3, 1, 1, 0.0500, '2024-11-01 16:00:00'),
-(102, 2, 1, 17, 30.6, 71.0, 1, 1, 0.0500, '2024-11-01 16:00:00'),
-(103, 2, 1, 18, 23.8, 55.2, 1, 1, 0.0500, '2024-11-01 16:30:00'),
-(104, 1, 1, 18, 19.8, 36.0, 0, 0, 0.0000, '2024-11-01 16:30:00'),
-(105, 8, 1, 18, 27.0, 83.7, 0, 0, 0.0000, '2024-11-01 16:30:00'),
-(106, 1, 2, 18, 23.9, 67.7, 0, 0, 0.0000, '2024-11-01 16:30:00'),
-(107, 8, 2, 18, 25.9, 40.0, 0, 0, 0.0000, '2024-11-01 16:30:00'),
-(108, 4, 2, 18, NULL, NULL, 1, 1, 0.0500, '2024-11-01 16:30:00'),
-(109, 4, 2, 19, 28.5, 60.0, 0, 0, 0.0000, '2024-11-01 17:00:00'),
-(110, 1, 2, 19, 27.0, 47.2, 0, 0, 0.0000, '2024-11-01 17:00:00'),
-(111, 7, 2, 19, NULL, NULL, 1, 1, 0.0500, '2024-11-01 17:00:00'),
-(112, 5, 2, 19, NULL, NULL, 0, 0, 0.0000, '2024-11-01 17:00:00'),
-(113, 4, 1, 19, 20.7, 53.6, 0, 0, 0.0000, '2024-11-01 17:00:00'),
-(114, 5, 1, 19, NULL, NULL, 1, 1, 0.0500, '2024-11-01 17:00:00'),
-(115, 8, 2, 20, 31.5, 83.2, 0, 0, 0.0000, '2024-11-01 17:30:00'),
-(116, 1, 2, 20, 18.6, 46.0, 1, 1, 0.0500, '2024-11-01 17:30:00'),
-(117, 4, 1, 20, NULL, NULL, 1, 1, 0.0500, '2024-11-01 17:30:00'),
-(118, 5, 2, 20, 24.9, 72.6, 1, 1, 0.0500, '2024-11-01 17:30:00'),
-(119, 5, 2, 20, 19.6, 50.2, 0, 0, 0.0000, '2024-11-01 17:30:00'),
-(120, 2, 2, 20, NULL, NULL, 0, 0, 0.0000, '2024-11-01 17:30:00'),
-(121, 1, 1, 21, 25.9, 35.4, 0, 0, 0.0000, '2024-11-01 18:00:00'),
-(122, 2, 1, 21, NULL, NULL, 1, 1, 0.0500, '2024-11-01 18:00:00'),
-(123, 5, 1, 21, 21.3, 65.4, 1, 1, 0.0500, '2024-11-01 18:00:00'),
-(124, 1, 2, 21, NULL, NULL, 0, 0, 0.0000, '2024-11-01 18:00:00'),
-(125, 7, 1, 21, 28.8, 74.6, 0, 0, 0.0000, '2024-11-01 18:00:00'),
-(126, 5, 1, 21, 25.8, 65.7, 1, 1, 0.0500, '2024-11-01 18:00:00'),
-(127, 7, 1, 22, NULL, NULL, 0, 0, 0.0000, '2024-11-01 18:30:00'),
-(128, 7, 1, 22, 31.2, 38.3, 0, 0, 0.0000, '2024-11-01 18:30:00'),
-(129, 5, 1, 22, NULL, NULL, 0, 0, 0.0000, '2024-11-01 18:30:00'),
-(130, 8, 1, 22, NULL, NULL, 0, 0, 0.0000, '2024-11-01 18:30:00'),
-(131, 8, 2, 22, 29.7, 62.5, 1, 1, 0.0500, '2024-11-01 18:30:00'),
-(132, 7, 2, 22, NULL, NULL, 0, 0, 0.0000, '2024-11-01 18:30:00'),
-(133, 7, 2, 23, 23.3, 35.9, 0, 0, 0.0000, '2024-11-01 19:00:00'),
-(134, 5, 1, 23, NULL, NULL, 0, 0, 0.0000, '2024-11-01 19:00:00'),
-(135, 7, 2, 23, NULL, NULL, 1, 1, 0.0500, '2024-11-01 19:00:00'),
-(136, 2, 1, 23, NULL, NULL, 0, 0, 0.0000, '2024-11-01 19:00:00'),
-(137, 4, 2, 23, 24.9, 58.9, 0, 0, 0.0000, '2024-11-01 19:00:00'),
-(138, 5, 1, 23, NULL, NULL, 0, 0, 0.0000, '2024-11-01 19:00:00'),
-(139, 5, 2, 24, NULL, NULL, 0, 0, 0.0000, '2024-11-01 19:30:00'),
-(140, 8, 1, 24, 27.9, 46.5, 1, 1, 0.0500, '2024-11-01 19:30:00'),
-(141, 4, 2, 24, NULL, NULL, 0, 0, 0.0000, '2024-11-01 19:30:00'),
-(142, 2, 1, 24, 29.9, 70.3, 0, 0, 0.0000, '2024-11-01 19:30:00'),
-(143, 4, 1, 24, NULL, NULL, 1, 1, 0.0500, '2024-11-01 19:30:00'),
-(144, 8, 2, 24, NULL, NULL, 1, 1, 0.0500, '2024-11-01 19:30:00'),
-(145, 8, 1, 25, NULL, NULL, 0, 0, 0.0000, '2024-11-01 20:00:00'),
-(146, 1, 2, 25, 30.7, 54.0, 0, 0, 0.0000, '2024-11-01 20:00:00'),
-(147, 4, 2, 25, NULL, NULL, 1, 1, 0.0500, '2024-11-01 20:00:00'),
-(148, 8, 1, 25, NULL, NULL, 0, 0, 0.0000, '2024-11-01 20:00:00'),
-(149, 2, 1, 25, 21.8, 70.0, 0, 0, 0.0000, '2024-11-01 20:00:00'),
-(150, 4, 2, 25, NULL, NULL, 1, 1, 0.0500, '2024-11-01 20:00:00'),
-(151, 7, 1, 26, 30.2, 81.3, 0, 0, 0.0000, '2024-11-01 20:30:00'),
-(152, 2, 2, 26, NULL, NULL, 0, 0, 0.0000, '2024-11-01 20:30:00'),
-(153, 7, 2, 26, 18.3, 58.2, 0, 0, 0.0000, '2024-11-01 20:30:00'),
-(154, 2, 2, 26, NULL, NULL, 1, 1, 0.0500, '2024-11-01 20:30:00'),
-(155, 4, 1, 26, NULL, NULL, 1, 1, 0.0500, '2024-11-01 20:30:00'),
-(156, 4, 2, 26, 30.3, 78.7, 0, 0, 0.0000, '2024-11-01 20:30:00'),
-(157, 1, 2, 27, NULL, NULL, 0, 0, 0.0000, '2024-11-01 21:00:00'),
-(158, 2, 2, 27, NULL, NULL, 0, 0, 0.0000, '2024-11-01 21:00:00'),
-(159, 4, 1, 27, 27.8, 58.7, 1, 1, 0.0500, '2024-11-01 21:00:00'),
-(160, 2, 2, 27, 19.8, 44.3, 1, 1, 0.0500, '2024-11-01 21:00:00'),
-(161, 4, 2, 27, 22.1, 67.8, 0, 0, 0.0000, '2024-11-01 21:00:00'),
-(162, 1, 1, 27, 31.8, 47.5, 1, 1, 0.0500, '2024-11-01 21:00:00'),
-(163, 2, 2, 28, 30.8, 67.7, 1, 1, 0.0500, '2024-11-01 21:30:00'),
-(164, 1, 2, 28, NULL, NULL, 1, 1, 0.0500, '2024-11-01 21:30:00'),
-(165, 8, 1, 28, 23.5, 55.9, 1, 1, 0.0500, '2024-11-01 21:30:00'),
-(166, 4, 1, 28, NULL, NULL, 0, 0, 0.0000, '2024-11-01 21:30:00'),
-(167, 8, 1, 28, 28.1, 84.7, 1, 1, 0.0500, '2024-11-01 21:30:00'),
-(168, 8, 2, 28, 25.8, 45.4, 0, 0, 0.0000, '2024-11-01 21:30:00'),
-(169, 4, 1, 29, NULL, NULL, 0, 0, 0.0000, '2024-11-01 22:00:00'),
-(170, 4, 1, 29, 18.7, 56.9, 1, 1, 0.0500, '2024-11-01 22:00:00'),
-(171, 1, 1, 29, NULL, NULL, 1, 1, 0.0500, '2024-11-01 22:00:00'),
-(172, 8, 1, 29, 20.0, 57.6, 0, 0, 0.0000, '2024-11-01 22:00:00'),
-(173, 2, 2, 29, 26.6, 38.8, 1, 1, 0.0500, '2024-11-01 22:00:00'),
-(174, 7, 2, 29, NULL, NULL, 0, 0, 0.0000, '2024-11-01 22:00:00'),
-(175, 4, 2, 30, NULL, NULL, 1, 1, 0.0500, '2024-11-01 22:30:00'),
-(176, 5, 2, 30, 21.1, 63.9, 0, 0, 0.0000, '2024-11-01 22:30:00'),
-(177, 4, 2, 30, NULL, NULL, 1, 1, 0.0500, '2024-11-01 22:30:00'),
-(178, 5, 2, 30, 25.5, 62.2, 1, 1, 0.0500, '2024-11-01 22:30:00'),
-(179, 7, 2, 30, 28.3, 76.4, 0, 0, 0.0000, '2024-11-01 22:30:00'),
-(180, 1, 2, 30, 28.3, 72.4, 1, 1, 0.0500, '2024-11-01 22:30:00'),
-(181, 4, 1, 31, NULL, NULL, 1, 1, 0.0500, '2024-11-01 23:00:00'),
-(182, 4, 1, 31, 25.1, 73.9, 0, 0, 0.0000, '2024-11-01 23:00:00'),
-(183, 2, 2, 31, NULL, NULL, 1, 1, 0.0500, '2024-11-01 23:00:00'),
-(184, 8, 1, 31, NULL, NULL, 0, 0, 0.0000, '2024-11-01 23:00:00'),
-(185, 2, 1, 31, 31.4, 39.3, 1, 1, 0.0500, '2024-11-01 23:00:00'),
-(186, 2, 2, 31, 21.0, 53.4, 0, 0, 0.0000, '2024-11-01 23:00:00'),
-(187, 7, 2, 32, 29.9, 42.8, 0, 0, 0.0000, '2024-11-01 23:30:00'),
-(188, 7, 1, 32, 21.2, 44.2, 0, 0, 0.0000, '2024-11-01 23:30:00'),
-(189, 7, 1, 32, NULL, NULL, 0, 0, 0.0000, '2024-11-01 23:30:00'),
-(190, 5, 2, 32, 22.7, 62.3, 0, 0, 0.0000, '2024-11-01 23:30:00'),
-(191, 2, 1, 32, 19.4, 64.2, 1, 1, 0.0500, '2024-11-01 23:30:00'),
-(192, 2, 1, 32, 26.5, 40.3, 0, 0, 0.0000, '2024-11-01 23:30:00'),
-(193, 5, 2, 33, NULL, NULL, 1, 1, 0.0500, '2024-11-02 00:00:00'),
-(194, 5, 1, 33, 23.6, 82.3, 0, 0, 0.0000, '2024-11-02 00:00:00'),
-(195, 1, 1, 33, NULL, NULL, 0, 0, 0.0000, '2024-11-02 00:00:00'),
-(196, 4, 1, 33, 22.0, 68.3, 0, 0, 0.0000, '2024-11-02 00:00:00'),
-(197, 5, 2, 33, 23.5, 45.4, 1, 1, 0.0500, '2024-11-02 00:00:00'),
-(198, 1, 1, 33, 22.1, 38.9, 0, 0, 0.0000, '2024-11-02 00:00:00');
+-- -----------------------------------------------------
+-- Table `entrega5`.`dim_tempo`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `entrega5`.`dim_tempo` (
+  `ID_Data` INT NOT NULL,
+  `Data_Completa` DATETIME NOT NULL,
+  `Ano` SMALLINT NOT NULL,
+  `Mes` TINYINT NOT NULL,
+  `Dia` TINYINT NOT NULL,
+  `DiaSemana` VARCHAR(15) NOT NULL,
+  `Hora` TINYINT NOT NULL,
+  `Periodo_Dia` ENUM('Madrugada', 'Manhã', 'Tarde', 'Noite') NOT NULL,
+  PRIMARY KEY (`ID_Data`))
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+
+-- -----------------------------------------------------
+-- Table `entrega5`.`fato_leituras`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `entrega5`.`fato_leituras` (
+  `ID_Leitura` BIGINT NOT NULL AUTO_INCREMENT,
+  `ID_Sensor` INT NOT NULL,
+  `ID_Filial` INT NOT NULL,
+  `ID_Data` INT NOT NULL,
+  `Temperatura` DECIMAL(4,1) NULL DEFAULT NULL,
+  `Umidade` DECIMAL(4,1) NULL DEFAULT NULL,
+  `Movimento_Detectado` TINYINT NULL DEFAULT '0',
+  `Lampada_Ligada` TINYINT NULL DEFAULT '0',
+  `Consumo_kWh` DECIMAL(6,4) NULL DEFAULT '0.0000',
+  `Timestamp` DATETIME NOT NULL,
+  `Qualidade_Sinal` TINYINT NULL DEFAULT '100',
+  `Status_Leitura` ENUM('Válida', 'Erro', 'Suspeita') NULL DEFAULT 'Válida',
+  PRIMARY KEY (`ID_Leitura`),
+  INDEX `ID_Sensor` (`ID_Sensor` ASC) VISIBLE,
+  INDEX `ID_Filial` (`ID_Filial` ASC) VISIBLE,
+  INDEX `ID_Data` (`ID_Data` ASC) VISIBLE,
+  CONSTRAINT `fato_leituras_ibfk_1`
+    FOREIGN KEY (`ID_Sensor`)
+    REFERENCES `entrega5`.`dim_sensor` (`ID_Sensor`),
+  CONSTRAINT `fato_leituras_ibfk_2`
+    FOREIGN KEY (`ID_Filial`)
+    REFERENCES `entrega5`.`dim_filial` (`ID_Filial`),
+  CONSTRAINT `fato_leituras_ibfk_3`
+    FOREIGN KEY (`ID_Data`)
+    REFERENCES `entrega5`.`dim_tempo` (`ID_Data`))
+ENGINE = InnoDB
+AUTO_INCREMENT = 234
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+USE `entrega5` ;
+
+-- -----------------------------------------------------
+-- procedure sp_inserir_leitura
+-- -----------------------------------------------------
 
 DELIMITER $$
-CREATE PROCEDURE sp_inserir_leitura(
+USE `entrega5`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_inserir_leitura`(
   IN p_id_sensor INT,
   IN p_temperatura DECIMAL(4,1),
   IN p_umidade DECIMAL(4,1),
@@ -376,14 +128,67 @@ BEGIN
   DECLARE v_id_filial INT;
   DECLARE v_id_data INT;
   DECLARE v_consumo DECIMAL(6,4);
+  DECLARE v_timestamp DATETIME;
+  DECLARE v_periodo VARCHAR(15);
+  DECLARE v_dia_semana VARCHAR(15);
 
-  SELECT ID_Filial INTO v_id_filial FROM DIM_SENSOR WHERE ID_Sensor = p_id_sensor;
+  -- Pegar ID da filial do sensor
+  SELECT ID_Filial INTO v_id_filial 
+  FROM DIM_SENSOR 
+  WHERE ID_Sensor = p_id_sensor;
 
+  -- Calcular consumo
   SET v_consumo = CASE WHEN p_lampada = 1 THEN 0.0500 ELSE 0.0000 END;
 
-  SET v_id_data = UNIX_TIMESTAMP(NOW());
+  -- Timestamp atual
+  SET v_timestamp = NOW();
+  SET v_id_data = UNIX_TIMESTAMP(v_timestamp);
 
-  INSERT INTO FATO_LEITURAS (ID_Sensor, ID_Filial, ID_Data, Temperatura, Umidade, Movimento_Detectado, Lampada_Ligada, Consumo_kWh, Timestamp)
-  VALUES (p_id_sensor, v_id_filial, v_id_data, p_temperatura, p_umidade, p_movimento, p_lampada, v_consumo, NOW());
+  -- Calcular período do dia
+  SET v_periodo = CASE
+    WHEN HOUR(v_timestamp) >= 0 AND HOUR(v_timestamp) < 6 THEN 'Madrugada'
+    WHEN HOUR(v_timestamp) >= 6 AND HOUR(v_timestamp) < 12 THEN 'Manhã'
+    WHEN HOUR(v_timestamp) >= 12 AND HOUR(v_timestamp) < 18 THEN 'Tarde'
+    ELSE 'Noite'
+  END;
+
+  -- Calcular dia da semana
+  SET v_dia_semana = CASE DAYOFWEEK(v_timestamp)
+    WHEN 1 THEN 'Domingo'
+    WHEN 2 THEN 'Segunda'
+    WHEN 3 THEN 'Terça'
+    WHEN 4 THEN 'Quarta'
+    WHEN 5 THEN 'Quinta'
+    WHEN 6 THEN 'Sexta'
+    WHEN 7 THEN 'Sábado'
+  END;
+
+  -- Inserir na DIM_TEMPO se não existir
+  INSERT IGNORE INTO DIM_TEMPO (
+    ID_Data, Data_Completa, Ano, Mes, Dia, DiaSemana, Hora, Periodo_Dia
+  ) VALUES (
+    v_id_data,
+    v_timestamp,
+    YEAR(v_timestamp),
+    MONTH(v_timestamp),
+    DAY(v_timestamp),
+    v_dia_semana,
+    HOUR(v_timestamp),
+    v_periodo
+  );
+
+  -- Inserir leitura
+  INSERT INTO FATO_LEITURAS (
+    ID_Sensor, ID_Filial, ID_Data, Temperatura, Umidade, 
+    Movimento_Detectado, Lampada_Ligada, Consumo_kWh, Timestamp
+  ) VALUES (
+    p_id_sensor, v_id_filial, v_id_data, p_temperatura, p_umidade, 
+    p_movimento, p_lampada, v_consumo, v_timestamp
+  );
 END$$
+
 DELIMITER ;
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
