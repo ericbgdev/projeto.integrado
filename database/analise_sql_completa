@@ -1,0 +1,359 @@
+-- ════════════════════════════════════════════════════════════════
+-- 📊 ANÁLISE COMPLETA - SISTEMA PACKBAG
+-- Sistema de Monitoramento IoT - Aguai & Casa Branca
+-- ════════════════════════════════════════════════════════════════
+
+USE entrega5;
+
+-- ════════════════════════════════════════════════════════════════
+-- 📈 1. RESUMO GERAL DO SISTEMA
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ RESUMO GERAL ════════' as '';
+
+SELECT 
+    COUNT(*) as 'Total de Leituras',
+    COUNT(DISTINCT ID_Sensor) as 'Sensores com Dados',
+    COUNT(DISTINCT ID_Filial) as 'Filiais Ativas',
+    MIN(Timestamp) as 'Primeira Leitura',
+    MAX(Timestamp) as 'Última Leitura',
+    TIMESTAMPDIFF(HOUR, MIN(Timestamp), MAX(Timestamp)) as 'Horas Monitoradas'
+FROM FATO_LEITURAS;
+
+-- Status dos Sensores
+SELECT '════════ STATUS DOS SENSORES ════════' as '';
+
+SELECT 
+    Status,
+    COUNT(*) as 'Quantidade',
+    GROUP_CONCAT(CONCAT(Tipo_Sensor, ' (ID:', ID_Sensor, ')') SEPARATOR ', ') as 'Detalhes'
+FROM DIM_SENSOR
+GROUP BY Status;
+
+-- ════════════════════════════════════════════════════════════════
+-- 🏢 2. ANÁLISE POR FILIAL
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ DESEMPENHO POR FILIAL ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    f.Cidade,
+    COUNT(DISTINCT fl.ID_Sensor) as 'Sensores Ativos',
+    COUNT(fl.ID_Leitura) as 'Total Leituras',
+    ROUND(AVG(fl.Temperatura), 1) as 'Temp Média (°C)',
+    ROUND(AVG(fl.Umidade), 1) as 'Umid Média (%)',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo Total (kWh)',
+    SUM(fl.Movimento_Detectado) as 'Movimentos Detectados',
+    SUM(fl.Lampada_Ligada) as 'Acionamentos Lâmpada',
+    MAX(fl.Timestamp) as 'Última Atualização'
+FROM DIM_FILIAL f
+LEFT JOIN FATO_LEITURAS fl ON f.ID_Filial = fl.ID_Filial
+GROUP BY f.ID_Filial, f.Nome_Filial, f.Cidade
+ORDER BY COUNT(fl.ID_Leitura) DESC;
+
+-- ════════════════════════════════════════════════════════════════
+-- 📡 3. ANÁLISE POR TIPO DE SENSOR
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ DESEMPENHO POR TIPO DE SENSOR ════════' as '';
+
+SELECT 
+    s.Tipo_Sensor as 'Tipo',
+    s.Modelo,
+    COUNT(DISTINCT s.ID_Sensor) as 'Qtd Sensores',
+    COUNT(fl.ID_Leitura) as 'Total Leituras',
+    ROUND(AVG(fl.Temperatura), 1) as 'Temp Média',
+    ROUND(AVG(fl.Umidade), 1) as 'Umid Média',
+    SUM(fl.Movimento_Detectado) as 'Movimentos',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo (kWh)',
+    ROUND(AVG(fl.Qualidade_Sinal), 1) as 'Qualidade Sinal (%)'
+FROM DIM_SENSOR s
+LEFT JOIN FATO_LEITURAS fl ON s.ID_Sensor = fl.ID_Sensor
+GROUP BY s.Tipo_Sensor, s.Modelo
+ORDER BY COUNT(fl.ID_Leitura) DESC;
+
+-- ════════════════════════════════════════════════════════════════
+-- 🌡️ 4. ANÁLISE DE TEMPERATURA E UMIDADE
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ ESTATÍSTICAS DE TEMPERATURA ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    ROUND(MIN(fl.Temperatura), 1) as 'Temp Mínima (°C)',
+    ROUND(AVG(fl.Temperatura), 1) as 'Temp Média (°C)',
+    ROUND(MAX(fl.Temperatura), 1) as 'Temp Máxima (°C)',
+    ROUND(STDDEV(fl.Temperatura), 1) as 'Desvio Padrão',
+    COUNT(CASE WHEN fl.Temperatura > 30 THEN 1 END) as 'Leituras > 30°C',
+    COUNT(CASE WHEN fl.Temperatura < 20 THEN 1 END) as 'Leituras < 20°C'
+FROM DIM_FILIAL f
+JOIN FATO_LEITURAS fl ON f.ID_Filial = fl.ID_Filial
+WHERE fl.Temperatura IS NOT NULL
+GROUP BY f.ID_Filial, f.Nome_Filial;
+
+SELECT '════════ ESTATÍSTICAS DE UMIDADE ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    ROUND(MIN(fl.Umidade), 1) as 'Umid Mínima (%)',
+    ROUND(AVG(fl.Umidade), 1) as 'Umid Média (%)',
+    ROUND(MAX(fl.Umidade), 1) as 'Umid Máxima (%)',
+    ROUND(STDDEV(fl.Umidade), 1) as 'Desvio Padrão',
+    COUNT(CASE WHEN fl.Umidade > 70 THEN 1 END) as 'Leituras > 70%',
+    COUNT(CASE WHEN fl.Umidade < 40 THEN 1 END) as 'Leituras < 40%'
+FROM DIM_FILIAL f
+JOIN FATO_LEITURAS fl ON f.ID_Filial = fl.ID_Filial
+WHERE fl.Umidade IS NOT NULL
+GROUP BY f.ID_Filial, f.Nome_Filial;
+
+-- ════════════════════════════════════════════════════════════════
+-- 🚶 5. ANÁLISE DE MOVIMENTO
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ ANÁLISE DE DETECÇÃO DE MOVIMENTO ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    s.Localizacao as 'Localização',
+    COUNT(*) as 'Total Leituras',
+    SUM(fl.Movimento_Detectado) as 'Movimentos Detectados',
+    ROUND(SUM(fl.Movimento_Detectado) * 100.0 / COUNT(*), 1) as 'Taxa Detecção (%)',
+    SUM(fl.Lampada_Ligada) as 'Acionamentos Lâmpada',
+    MAX(fl.Timestamp) as 'Último Movimento'
+FROM DIM_FILIAL f
+JOIN DIM_SENSOR s ON f.ID_Filial = s.ID_Filial
+JOIN FATO_LEITURAS fl ON s.ID_Sensor = fl.ID_Sensor
+WHERE s.Tipo_Sensor IN ('Movimento', 'Iluminacao')
+GROUP BY f.Nome_Filial, s.Localizacao
+ORDER BY SUM(fl.Movimento_Detectado) DESC;
+
+-- ════════════════════════════════════════════════════════════════
+-- ⚡ 6. ANÁLISE DE CONSUMO DE ENERGIA
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ CONSUMO DE ENERGIA ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo Total (kWh)',
+    ROUND(AVG(fl.Consumo_kWh), 6) as 'Consumo Médio (kWh)',
+    SUM(fl.Lampada_Ligada) as 'Horas Lâmpada Ligada',
+    ROUND(SUM(fl.Consumo_kWh) * 0.85, 2) as 'Custo Estimado (R$)',
+    COUNT(DISTINCT DATE(fl.Timestamp)) as 'Dias Monitorados'
+FROM DIM_FILIAL f
+JOIN FATO_LEITURAS fl ON f.ID_Filial = fl.ID_Filial
+GROUP BY f.ID_Filial, f.Nome_Filial
+ORDER BY SUM(fl.Consumo_kWh) DESC;
+
+-- Consumo por sensor
+SELECT '════════ CONSUMO POR SENSOR ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    s.Tipo_Sensor as 'Tipo Sensor',
+    s.Localizacao as 'Localização',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo (kWh)',
+    SUM(fl.Lampada_Ligada) as 'Tempo Ligado',
+    ROUND(SUM(fl.Consumo_kWh) * 0.85, 2) as 'Custo (R$)'
+FROM DIM_FILIAL f
+JOIN DIM_SENSOR s ON f.ID_Filial = s.ID_Filial
+JOIN FATO_LEITURAS fl ON s.ID_Sensor = fl.ID_Sensor
+WHERE fl.Consumo_kWh > 0
+GROUP BY f.Nome_Filial, s.Tipo_Sensor, s.Localizacao
+ORDER BY SUM(fl.Consumo_kWh) DESC;
+
+-- ════════════════════════════════════════════════════════════════
+-- 📅 7. ANÁLISE TEMPORAL
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ ATIVIDADE POR PERÍODO DO DIA ════════' as '';
+
+SELECT 
+    t.Periodo_Dia as 'Período',
+    COUNT(*) as 'Total Leituras',
+    SUM(fl.Movimento_Detectado) as 'Movimentos',
+    ROUND(AVG(fl.Temperatura), 1) as 'Temp Média (°C)',
+    ROUND(AVG(fl.Umidade), 1) as 'Umid Média (%)',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo (kWh)'
+FROM DIM_TEMPO t
+JOIN FATO_LEITURAS fl ON t.ID_Data = fl.ID_Data
+GROUP BY t.Periodo_Dia
+ORDER BY FIELD(t.Periodo_Dia, 'Madrugada', 'Manhã', 'Tarde', 'Noite');
+
+SELECT '════════ ATIVIDADE POR DIA DA SEMANA ════════' as '';
+
+SELECT 
+    t.DiaSemana as 'Dia',
+    COUNT(*) as 'Total Leituras',
+    SUM(fl.Movimento_Detectado) as 'Movimentos',
+    ROUND(AVG(fl.Temperatura), 1) as 'Temp Média (°C)',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo (kWh)'
+FROM DIM_TEMPO t
+JOIN FATO_LEITURAS fl ON t.ID_Data = fl.ID_Data
+GROUP BY t.DiaSemana
+ORDER BY FIELD(t.DiaSemana, 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo');
+
+SELECT '════════ ATIVIDADE POR HORA DO DIA ════════' as '';
+
+SELECT 
+    t.Hora as 'Hora',
+    COUNT(*) as 'Leituras',
+    SUM(fl.Movimento_Detectado) as 'Movimentos',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo (kWh)'
+FROM DIM_TEMPO t
+JOIN FATO_LEITURAS fl ON t.ID_Data = fl.ID_Data
+GROUP BY t.Hora
+ORDER BY t.Hora;
+
+-- ════════════════════════════════════════════════════════════════
+-- ⚠️ 8. ALERTAS E PROBLEMAS DETECTADOS
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ ALERTAS CRÍTICOS ════════' as '';
+
+-- Temperaturas extremas
+SELECT 
+    '🔥 Temperatura Alta' as 'Tipo Alerta',
+    f.Nome_Filial as 'Filial',
+    s.Localizacao as 'Local',
+    ROUND(fl.Temperatura, 1) as 'Valor',
+    fl.Timestamp as 'Quando'
+FROM FATO_LEITURAS fl
+JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+WHERE fl.Temperatura > 32
+ORDER BY fl.Temperatura DESC
+LIMIT 5;
+
+SELECT 
+    '❄️ Temperatura Baixa' as 'Tipo Alerta',
+    f.Nome_Filial as 'Filial',
+    s.Localizacao as 'Local',
+    ROUND(fl.Temperatura, 1) as 'Valor',
+    fl.Timestamp as 'Quando'
+FROM FATO_LEITURAS fl
+JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+WHERE fl.Temperatura < 19
+ORDER BY fl.Temperatura ASC
+LIMIT 5;
+
+-- Umidade extrema
+SELECT 
+    '💧 Umidade Alta' as 'Tipo Alerta',
+    f.Nome_Filial as 'Filial',
+    s.Localizacao as 'Local',
+    ROUND(fl.Umidade, 1) as 'Valor (%)',
+    fl.Timestamp as 'Quando'
+FROM FATO_LEITURAS fl
+JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+WHERE fl.Umidade > 80
+ORDER BY fl.Umidade DESC
+LIMIT 5;
+
+-- Sensores sem dados recentes
+SELECT '════════ SENSORES COM POSSÍVEIS PROBLEMAS ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    s.ID_Sensor as 'ID Sensor',
+    s.Tipo_Sensor as 'Tipo',
+    s.Localizacao as 'Local',
+    MAX(fl.Timestamp) as 'Última Leitura',
+    TIMESTAMPDIFF(MINUTE, MAX(fl.Timestamp), NOW()) as 'Minutos Sem Dados'
+FROM DIM_SENSOR s
+JOIN DIM_FILIAL f ON s.ID_Filial = f.ID_Filial
+LEFT JOIN FATO_LEITURAS fl ON s.ID_Sensor = fl.ID_Sensor
+WHERE s.Status = 'Ativo'
+GROUP BY s.ID_Sensor, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao
+HAVING TIMESTAMPDIFF(MINUTE, MAX(fl.Timestamp), NOW()) > 10
+ORDER BY TIMESTAMPDIFF(MINUTE, MAX(fl.Timestamp), NOW()) DESC;
+
+-- ════════════════════════════════════════════════════════════════
+-- 🏆 9. RANKING E COMPARAÇÕES
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ RANKING DE SENSORES MAIS ATIVOS ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    s.Tipo_Sensor as 'Tipo',
+    s.Localizacao as 'Local',
+    COUNT(*) as 'Total Leituras',
+    SUM(fl.Movimento_Detectado) as 'Movimentos',
+    ROUND(SUM(fl.Consumo_kWh), 4) as 'Consumo (kWh)'
+FROM DIM_SENSOR s
+JOIN DIM_FILIAL f ON s.ID_Filial = f.ID_Filial
+JOIN FATO_LEITURAS fl ON s.ID_Sensor = fl.ID_Sensor
+GROUP BY s.ID_Sensor, f.Nome_Filial, s.Tipo_Sensor, s.Localizacao
+ORDER BY COUNT(*) DESC
+LIMIT 10;
+
+-- ════════════════════════════════════════════════════════════════
+-- 📊 10. TENDÊNCIAS E INSIGHTS
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ CORRELAÇÃO TEMPERATURA x MOVIMENTO ════════' as '';
+
+SELECT 
+    CASE 
+        WHEN fl.Temperatura < 20 THEN '< 20°C'
+        WHEN fl.Temperatura BETWEEN 20 AND 25 THEN '20-25°C'
+        WHEN fl.Temperatura BETWEEN 25 AND 30 THEN '25-30°C'
+        ELSE '> 30°C'
+    END as 'Faixa Temperatura',
+    COUNT(*) as 'Total Leituras',
+    SUM(fl.Movimento_Detectado) as 'Movimentos',
+    ROUND(SUM(fl.Movimento_Detectado) * 100.0 / COUNT(*), 1) as 'Taxa Movimento (%)'
+FROM FATO_LEITURAS fl
+WHERE fl.Temperatura IS NOT NULL
+GROUP BY CASE 
+    WHEN fl.Temperatura < 20 THEN '< 20°C'
+    WHEN fl.Temperatura BETWEEN 20 AND 25 THEN '20-25°C'
+    WHEN fl.Temperatura BETWEEN 25 AND 30 THEN '25-30°C'
+    ELSE '> 30°C'
+END;
+
+SELECT '════════ EFICIÊNCIA ENERGÉTICA ════════' as '';
+
+SELECT 
+    f.Nome_Filial as 'Filial',
+    COUNT(*) as 'Total Leituras',
+    SUM(fl.Movimento_Detectado) as 'Movimentos',
+    SUM(fl.Lampada_Ligada) as 'Acionamentos',
+    ROUND(SUM(fl.Lampada_Ligada) * 100.0 / NULLIF(SUM(fl.Movimento_Detectado), 0), 1) as 'Eficiência (%)',
+    ROUND(SUM(fl.Consumo_kWh) / NULLIF(SUM(fl.Movimento_Detectado), 0), 6) as 'kWh por Movimento'
+FROM DIM_FILIAL f
+JOIN FATO_LEITURAS fl ON f.ID_Filial = fl.ID_Filial
+GROUP BY f.ID_Filial, f.Nome_Filial;
+
+-- ════════════════════════════════════════════════════════════════
+-- 📝 11. ÚLTIMAS 10 LEITURAS DETALHADAS
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '════════ ÚLTIMAS 10 LEITURAS ════════' as '';
+
+SELECT 
+    fl.Timestamp as 'Data/Hora',
+    f.Nome_Filial as 'Filial',
+    s.Tipo_Sensor as 'Sensor',
+    s.Localizacao as 'Local',
+    CONCAT(COALESCE(ROUND(fl.Temperatura, 1), '-'), '°C') as 'Temp',
+    CONCAT(COALESCE(ROUND(fl.Umidade, 1), '-'), '%') as 'Umid',
+    IF(fl.Movimento_Detectado = 1, '✅', '-') as 'Mov',
+    IF(fl.Lampada_Ligada = 1, '💡', '-') as 'Lamp',
+    fl.Consumo_kWh as 'Consumo',
+    fl.Status_Leitura as 'Status'
+FROM FATO_LEITURAS fl
+JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
+JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
+ORDER BY fl.Timestamp DESC
+LIMIT 10;
+
+-- ════════════════════════════════════════════════════════════════
+-- ✅ FIM DA ANÁLISE
+-- ════════════════════════════════════════════════════════════════
+
+SELECT '✅ Análise Completa Finalizada!' as '';
