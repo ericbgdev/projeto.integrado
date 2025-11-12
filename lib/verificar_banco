@@ -1,11 +1,11 @@
 import 'services/database_service.dart';
-import 'services/firebase_realtime_service.dart';
+import 'services/firebase_service.dart';
 
 void main() async {
   print('''
 ╔════════════════════════════════════════════════════════════════╗
 ║     🔍 VERIFICAÇÃO COMPLETA - SISTEMA PACKBAG                  ║
-║            MySQL Local + Firebase Real                        ║
+║         MySQL Local + Firebase Simulado (JSON)                ║
 ╚════════════════════════════════════════════════════════════════╝
 ''');
   
@@ -67,46 +67,51 @@ void main() async {
     print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     // ════════════════════════════════════════════════════════════
-    // 🔥 VERIFICAÇÃO FIREBASE
+    // 🔥 VERIFICAÇÃO FIREBASE SIMULADO
     // ════════════════════════════════════════════════════════════
-    print('\n═══ 🔥 VERIFICANDO FIREBASE ═══\n');
+    print('\n═══ 🔥 VERIFICANDO FIREBASE SIMULADO (JSON) ═══\n');
     
-    await FirebaseRealtimeService.initialize();
-    await FirebaseRealtimeService.testarConexao();
+    await FirebaseService.initialize();
+    await FirebaseService.testarConexao();
 
-    // Estatísticas Firebase
-    final statsFirebase = await FirebaseRealtimeService.getEstatisticas();
-    print('\n📊 ESTATÍSTICAS FIREBASE:');
-    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('  🔥 Total de leituras: ${statsFirebase['total']}');
-    
-    if (statsFirebase['filiais'] != null) {
-      print('\n  🏢 Por Filial:');
-      (statsFirebase['filiais'] as Map).forEach((filial, qtd) {
-        print('     • $filial: $qtd leituras');
-      });
-    }
-    
-    if (statsFirebase['sensores'] != null) {
-      print('\n  📡 Por Tipo de Sensor:');
-      (statsFirebase['sensores'] as Map).forEach((sensor, qtd) {
-        print('     • $sensor: $qtd leituras');
-      });
-    }
-    
-    if (statsFirebase['ultima_atualizacao'] != null) {
-      print('\n  ⏰ Última atualização: ${statsFirebase['ultima_atualizacao']}');
-    }
-    print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    final leiturasFirebase = FirebaseService.getLeiturasFirebase();
+    print('📊 Total de leituras no Firebase: ${leiturasFirebase.length}');
 
-    // Últimas leituras do Firebase
+    if (leiturasFirebase.isNotEmpty) {
+      // Estatísticas por filial
+      final aguaiCount = leiturasFirebase.where((l) => l['filial'] == 'Aguai').length;
+      final casaBrancaCount = leiturasFirebase.where((l) => l['filial'] == 'Casa Branca').length;
+      
+      print('\n🏢 Por Filial:');
+      print('   • Aguai: $aguaiCount leituras');
+      print('   • Casa Branca: $casaBrancaCount leituras');
+
+      // Estatísticas por tipo de sensor
+      final tempUmidCount = leiturasFirebase.where((l) => l['tipoSensor'] == 'Temperatura/Umidade').length;
+      final movimentoCount = leiturasFirebase.where((l) => l['tipoSensor'] == 'Movimento').length;
+      final iluminacaoCount = leiturasFirebase.where((l) => l['tipoSensor'] == 'Iluminacao').length;
+      
+      print('\n📡 Por Tipo de Sensor:');
+      print('   • Temperatura/Umidade: $tempUmidCount leituras');
+      print('   • Movimento: $movimentoCount leituras');
+      print('   • Iluminação: $iluminacaoCount leituras');
+
+      // Última leitura
+      final ultimaLeitura = leiturasFirebase.last;
+      print('\n⏰ Última sincronização: ${ultimaLeitura['sincronizadoEm']}');
+    }
+
+    // Últimas 5 leituras do Firebase
     print('\n📝 ÚLTIMAS 5 LEITURAS NO FIREBASE:');
-    final leiturasFirebase = await FirebaseRealtimeService.getUltimasLeituras(limit: 5);
     
     if (leiturasFirebase.isEmpty) {
       print('  ⚠️  Nenhuma leitura encontrada no Firebase.');
     } else {
-      for (final leitura in leiturasFirebase) {
+      final ultimas = leiturasFirebase.length > 5 
+          ? leiturasFirebase.sublist(leiturasFirebase.length - 5) 
+          : leiturasFirebase;
+      
+      for (final leitura in ultimas) {
         print('\n  📍 ${leitura['filial']} - ${leitura['tipoSensor']}');
         print('     Sensor: ${leitura['idSensor']}');
         print('     Timestamp: ${leitura['timestamp']}');
@@ -124,7 +129,6 @@ void main() async {
           print('     💡 LÂMPADA LIGADA');
         }
         print('     ⚡ Consumo: ${leitura['consumo_kWh']} kWh');
-        print('     🔄 Sincronizado em: ${leitura['sincronizadoEm']}');
       }
     }
 
@@ -134,8 +138,8 @@ void main() async {
     print('\n═══ 📊 COMPARAÇÃO MYSQL vs FIREBASE ═══\n');
     
     final totalMySQL = estatisticas['total_leituras'] ?? 0;
-    final totalFirebase = statsFirebase['total'] ?? 0;
-    final diferenca = (totalMySQL as int) - (totalFirebase as int);
+    final totalFirebase = leiturasFirebase.length;
+    final diferenca = (totalMySQL as int) - totalFirebase;
     
     print('  💾 MySQL: $totalMySQL leituras');
     print('  🔥 Firebase: $totalFirebase leituras');
@@ -150,21 +154,21 @@ void main() async {
     }
 
     // ════════════════════════════════════════════════════════════
-    // 📋 TESTE DE CONECTIVIDADE POR FILIAL
+    // 📋 INFORMAÇÕES POR FILIAL
     // ════════════════════════════════════════════════════════════
-    print('\n═══ 🔗 CONECTIVIDADE POR FILIAL ═══\n');
+    print('\n═══ 🔗 INFORMAÇÕES POR FILIAL ═══\n');
     
     for (final filial in filiais) {
-      final idFilial = filial['ID_Filial'];
       final nomeFilial = filial['Nome_Filial'];
       
       print('  🏢 $nomeFilial:');
       
       // Leituras Firebase por filial
-      final leiturasFilial = await FirebaseRealtimeService.getLeiturasPorFilial(idFilial);
+      final leiturasFilial = leiturasFirebase.where((l) => l['filial'] == nomeFilial).toList();
       print('     🔥 Firebase: ${leiturasFilial.length} leituras');
       
       // Status dos sensores da filial
+      final idFilial = filial['ID_Filial'];
       final sensoresFilial = sensores.where((s) => s['ID_Filial'] == idFilial).toList();
       final sensoresAtivos = sensoresFilial.where((s) => s['Status'] == 'Ativo').length;
       print('     📡 Sensores: $sensoresAtivos/${sensoresFilial.length} ativos');
@@ -185,7 +189,7 @@ void main() async {
     print('  Sistema Status:');
     print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('  ✅ MySQL: Conectado e operacional');
-    print('  ✅ Firebase: Conectado e sincronizado');
+    print('  ✅ Firebase: Simulado em arquivo JSON');
     print('  ✅ ${filiais.length} filiais ativas');
     print('  ✅ ${sensores.where((s) => s['Status'] == 'Ativo').length} sensores ativos');
     print('  ✅ $totalMySQL leituras no MySQL');
@@ -193,6 +197,7 @@ void main() async {
     print('  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     print('\n🎯 Sistema PackBag funcionando perfeitamente!');
+    print('💡 Arquivo Firebase: firebase_data.json');
 
   } catch (e, stackTrace) {
     print('\n❌ ERRO AO VERIFICAR SISTEMA: $e');
@@ -200,8 +205,8 @@ void main() async {
     print(stackTrace);
     print('\n💡 Dicas:');
     print('  • Verifique se o MySQL está rodando');
-    print('  • Verifique as credenciais do Firebase');
-    print('  • Verifique se o arquivo firebase-credentials.json existe');
+    print('  • Confirme usuário/senha em database_service.dart');
+    print('  • Certifique-se que o banco entrega5 existe');
   } finally {
     await DatabaseService.close();
     print('\n🔌 Conexões fechadas.');
