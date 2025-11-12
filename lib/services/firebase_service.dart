@@ -1,4 +1,3 @@
-// services/firebase_service.dart
 import 'dart:io';
 import 'dart:convert';
 import '../models/leitura_sensor.dart';
@@ -46,7 +45,7 @@ class FirebaseService {
         'qualidadeSinal': leitura.qualidadeSinal,
         'statusLeitura': leitura.statusLeitura,
         'sincronizadoEm': DateTime.now().toIso8601String(),
-        'fonte': 'Dart_Puro_Simulacao',
+        'fonte': 'MySQL_Real',
       };
 
       _firebaseData['leituras'].add(leituraFirebase);
@@ -62,7 +61,8 @@ class FirebaseService {
   static Future<void> _salvarFirebase() async {
     try {
       final file = File(_firebaseFile);
-      await file.writeAsString(json.encode(_firebaseData, indent: 2));
+      final jsonString = JsonEncoder.withIndent('  ').convert(_firebaseData);
+      await file.writeAsString(jsonString);
     } catch (e) {
       print('Erro ao salvar Firebase: $e');
     }
