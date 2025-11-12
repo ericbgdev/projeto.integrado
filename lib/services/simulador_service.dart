@@ -1,17 +1,17 @@
 import 'dart:math';
 import '../models/leitura_sensor.dart';
 import '../data/sensores_data.dart';
-import 'mysql_service.dart';
+import 'database_service.dart';
 import 'firebase_service.dart';
 
 class SimuladorService {
   final Random _random = Random();
-  bool _mysqlTestado = false;
+  bool _conexoesTestadas = false;
   
   Future<LeituraSensor> gerarLeituraSimulada() async {
-    if (!_mysqlTestado) {
+    if (!_conexoesTestadas) {
       await _testarConexoes();
-      _mysqlTestado = true;
+      _conexoesTestadas = true;
     }
 
     final sensoresIds = SensoresData.sensores.keys.toList();
@@ -56,14 +56,14 @@ class SimuladorService {
       timestamp: DateTime.now(),
     );
 
-    await MySQLService.salvarLeitura(leitura);
+    await DatabaseService.salvarLeitura(leitura);
     
     return leitura;
   }
 
   Future<void> _testarConexoes() async {
-    print('Testando conexoes...');
-    await MySQLService.testarConexao();
-    await FirebaseService.initialize();
+    print('🔌 Testando conexões...');
+    await DatabaseService.testarConexao();
+    await FirebaseService.testarConexao();
   }
 }
