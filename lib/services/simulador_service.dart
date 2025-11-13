@@ -2,7 +2,7 @@ import 'dart:math';
 import '../models/leitura_sensor.dart';
 import '../data/sensores_data.dart';
 import 'database_service.dart';
-import 'firebase_service.dart';
+import 'firebase_realtime_service.dart'; // ← MUDANÇA AQUI
 
 class SimuladorService {
   final Random _random = Random();
@@ -64,6 +64,6 @@ class SimuladorService {
   Future<void> _testarConexoes() async {
     print('🔌 Testando conexões...');
     await DatabaseService.testarConexao();
-    await FirebaseService.testarConexao();
+    await FirebaseRealtimeService.testarConexao(); // ← MUDANÇA AQUI
   }
 }
