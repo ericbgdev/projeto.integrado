@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'services/simulador_service.dart';
 import 'services/database_service.dart';
-import 'services/firebase_service.dart';
-import 'models/leitura_sensor.dart';
+import 'services/firebase_realtime_service.dart'; // ← MUDANÇA AQUI
 
 Future<void> demonstrarORM() async {
   print('\n=== 🗃️  DEMONSTRANDO DADOS DO BANCO ===');
@@ -40,21 +39,22 @@ Future<void> demonstrarConsultasORM() async {
     print('  $key: $value');
   });
   
-  final leiturasFirebase = FirebaseService.getLeiturasFirebase();
-  print('\n🔥 Leituras no Firebase: ${leiturasFirebase.length}');
+  // MUDANÇA AQUI
+  final leiturasFirebase = await FirebaseRealtimeService.getLeituras();
+  print('\n🔥 Leituras no Firebase Real: ${leiturasFirebase.length}');
 }
 
 void main() async {
   print('''
-🚀 SISTEMA PACKBAG - DART PURO + MySQL REAL
+🚀 SISTEMA PACKBAG - DART PURO + MySQL + Firebase REAL
 📡 Sensores: PIR HC-SR501 + DHT11
 🏢 Filiais: Aguai e Casa Branca
-💾 Banco: entrega5 (MySQL Real) + 🔥 Firebase Simulado
+💾 Banco: entrega5 (MySQL) + 🔥 Firebase Realtime Database
 ''');
 
   try {
     await DatabaseService.testarConexao();
-    await FirebaseService.initialize();
+    await FirebaseRealtimeService.initialize(); // ← MUDANÇA AQUI
     
     await demonstrarORM();
 
@@ -80,13 +80,13 @@ void main() async {
         await demonstrarConsultasORM();
         print('\n✅ SIMULAÇÃO CONCLUÍDA!');
         print('💾 Dados salvos no MySQL: entrega5');
-        print('🔥 Dados Firebase em: firebase_data.json');
+        print('🔥 Dados no Firebase Console');
         print('\n🎯 Execute novamente: dart main.dart');
       }
     });
     
   } catch (e) {
     print('\n❌ ERRO CRÍTICO: $e');
-    print('💡 Verifique se o MySQL está rodando e o banco entrega5 existe');
+    print('💡 Verifique MySQL e Firebase configurados');
   }
 }
