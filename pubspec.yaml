@@ -7,3 +7,5 @@ environment:
 
 dependencies:
   mysql1: ^0.20.0
+  http: ^1.1.0              
+  dart_jsonwebtoken: ^2.12.0 
