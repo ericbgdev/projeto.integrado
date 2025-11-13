@@ -1,6 +1,6 @@
 import 'package:mysql1/mysql1.dart';
 import '../models/leitura_sensor.dart';
-import 'firebase_service.dart';
+import 'firebase_realtime_service.dart'; // ← MUDANÇA AQUI
 
 class DatabaseService {
   static MySqlConnection? _conn;
@@ -12,10 +12,9 @@ class DatabaseService {
     user: 'root',
     password: 'unifeob@123',
     db: 'entrega5',
-    timeout: Duration(seconds: 30),
+    timeout: Duration(seconds: 60),
   );
 
-  // Manter conexão aberta
   static Future<MySqlConnection> _getConnection() async {
     if (_conn == null || !_isConnected) {
       try {
@@ -34,7 +33,6 @@ class DatabaseService {
       final conn = await _getConnection();
       print('✅ Conectado ao MySQL: entrega5');
       
-      // Verificar tabelas (usar maiúsculas como no schema)
       final resultado = await conn.query('SHOW TABLES');
       print('📊 Tabelas no banco:');
       for (final row in resultado) {
@@ -51,7 +49,6 @@ class DatabaseService {
     try {
       final conn = await _getConnection();
       
-      // Usar a stored procedure COM OS 5 PARÂMETROS CORRETOS
       await conn.query(
         'CALL sp_inserir_leitura(?, ?, ?, ?, ?)',
         [
@@ -65,8 +62,8 @@ class DatabaseService {
       
       print('💾 Leitura salva via SP: Sensor ${leitura.idSensor}');
       
-      // Também salvar no Firebase
-      await FirebaseService.salvarLeituraSimulada(leitura);
+      // Salvar no Firebase REAL - MUDANÇA AQUI
+      await FirebaseRealtimeService.salvarLeitura(leitura);
       
     } catch (e) {
       print('❌ Erro ao salvar leitura: $e');
@@ -79,7 +76,6 @@ class DatabaseService {
     try {
       final conn = await _getConnection();
       
-      // Buscar ID_Filial do sensor (MAIÚSCULA)
       final resultadoFilial = await conn.query(
         'SELECT ID_Filial FROM DIM_SENSOR WHERE ID_Sensor = ?',
         [leitura.idSensor]
@@ -93,10 +89,8 @@ class DatabaseService {
       final idData = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final consumo = leitura.lampadaLigada ? 0.0500 : 0.0000;
 
-      // Inserir na DIM_TEMPO se não existir
       await _inserirDimTempo(conn, idData, leitura.timestamp);
 
-      // Inserir na FATO_LEITURAS (MAIÚSCULA e SEM ID_Leitura que é AUTO_INCREMENT)
       await conn.query(
         '''INSERT INTO FATO_LEITURAS 
            (ID_Sensor, ID_Filial, ID_Data, Temperatura, Umidade, 
@@ -119,7 +113,8 @@ class DatabaseService {
       );
       
       print('💾 Leitura salva via insert direto');
-      await FirebaseService.salvarLeituraSimulada(leitura);
+      // MUDANÇA AQUI
+      await FirebaseRealtimeService.salvarLeitura(leitura);
       
     } catch (e) {
       print('❌ Erro no insert direto: $e');
@@ -132,7 +127,6 @@ class DatabaseService {
       final periodo = _obterPeriodoDia(data.hour);
       final diaSemana = _obterDiaSemana(data.weekday);
       
-      // USAR MAIÚSCULA
       await conn.query(
         '''INSERT IGNORE INTO DIM_TEMPO 
            (ID_Data, Data_Completa, Ano, Mes, Dia, DiaSemana, Hora, Periodo_Dia)
@@ -165,7 +159,6 @@ class DatabaseService {
     return dias[weekday - 1];
   }
 
-  // Métodos de consulta (USAR MAIÚSCULAS)
   static Future<List<Map<String, dynamic>>> getLeituras() async {
     try {
       final conn = await _getConnection();
@@ -216,33 +209,27 @@ class DatabaseService {
     try {
       final conn = await _getConnection();
       
-      // Total de leituras
       final totalResult = await conn.query('SELECT COUNT(*) as total FROM FATO_LEITURAS');
       final total = totalResult.first['total'];
       
-      // Média temperatura
       final tempResult = await conn.query(
         'SELECT AVG(Temperatura) as media FROM FATO_LEITURAS WHERE Temperatura IS NOT NULL'
       );
       final mediaTemp = tempResult.first['media'] ?? 0;
       
-      // Média umidade
       final umidResult = await conn.query(
         'SELECT AVG(Umidade) as media FROM FATO_LEITURAS WHERE Umidade IS NOT NULL'
       );
       final mediaUmid = umidResult.first['media'] ?? 0;
       
-      // Total consumo
       final consumoResult = await conn.query('SELECT SUM(Consumo_kWh) as total FROM FATO_LEITURAS');
       final consumoTotal = consumoResult.first['total'] ?? 0;
       
-      // Movimentos detectados
       final movResult = await conn.query(
         'SELECT COUNT(*) as total FROM FATO_LEITURAS WHERE Movimento_Detectado = 1'
       );
       final movimentos = movResult.first['total'];
       
-      // Contar filiais e sensores
       final filiaisResult = await conn.query('SELECT COUNT(*) as total FROM DIM_FILIAL');
       final totalFiliais = filiaisResult.first['total'];
       
@@ -274,7 +261,6 @@ class DatabaseService {
     }
   }
 
-  // Fechar conexão apenas ao finalizar o programa
   static Future<void> close() async {
     try {
       await _conn?.close();
