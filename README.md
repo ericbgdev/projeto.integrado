@@ -1,10 +1,39 @@
-# 🚀 Sistema PackBag - Monitoramento IoT
+# 🚀 Sistema PackBag - Monitoramento IoT v2.0
 
-Sistema integrado de monitoramento IoT com sensores **PIR HC-SR501** (movimento) e **DHT11** (temperatura/umidade) para as filiais Packbag em Aguai e Casa Branca.
+Sistema integrado de monitoramento IoT com **100 lâmpadas LED 20W** por filial, sensores **PIR HC-SR501** (movimento) e **DHT11** (temperatura/umidade) para as filiais Packbag em Aguai e Casa Branca.
 
 [![Dart](https://img.shields.io/badge/Dart-3.0+-blue.svg)](https://dart.dev/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0+-orange.svg)](https://www.mysql.com/)
 [![Firebase](https://img.shields.io/badge/Firebase-Realtime-yellow.svg)](https://firebase.google.com/)
+
+---
+
+## 💡 NOVIDADE v2.0 - Sistema de Iluminação Inteligente
+
+### Especificações Técnicas
+
+| Parâmetro | Valor |
+|-----------|-------|
+| **Lâmpadas por filial** | 100 unidades |
+| **Potência unitária** | 20W |
+| **Potência total** | 2000W (2 kW) |
+| **Tempo de ativação** | 10 minutos |
+| **Consumo por ativação** | 0.33 kWh |
+| **Tarifa de energia** | R$ 0,95/kWh |
+| **Custo por ativação** | R$ 0,3135 |
+
+### Cálculo do Consumo
+
+```
+Consumo = (Potência × Quantidade × Tempo) ÷ 1000
+Consumo = (20W × 100 × 10min) ÷ 1000
+Consumo = (20W × 100 × 0.167h) ÷ 1000
+Consumo = 0.33 kWh
+
+Custo = Consumo × Tarifa
+Custo = 0.33 kWh × R$ 0,95
+Custo = R$ 0,3135 por ativação
+```
 
 ---
 
@@ -27,9 +56,9 @@ Sistema integrado de monitoramento IoT com sensores **PIR HC-SR501** (movimento)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Banco de Dados](#-banco-de-dados)
 - [Firebase](#-firebase)
+- [Análise de Custos](#-análise-de-custos)
 - [Scripts Disponíveis](#-scripts-disponíveis)
-- [Análises SQL](#-análises-sql)
-- [To-Do](#-to-do)
+- [Solução de Problemas](#-solução-de-problemas)
 
 ---
 
@@ -40,46 +69,52 @@ Sistema integrado de monitoramento IoT com sensores **PIR HC-SR501** (movimento)
 - ✅ **Monitoramento em Tempo Real** - Leituras a cada 3 segundos
 - ✅ **Dual Storage** - MySQL local + Firebase na nuvem
 - ✅ **Sensores Simulados** - PIR HC-SR501 e DHT11
+- ✅ **Sistema de Iluminação Inteligente** - 100 lâmpadas LED 20W
+- ✅ **Controle de Consumo** - Cálculo automático de kWh e custos
 - ✅ **2 Filiais** - Aguai e Casa Branca (SP)
 - ✅ **6 Sensores Ativos** - 3 por filial
 - ✅ **Stored Procedures** - Otimização de inserções no MySQL
-- ✅ **Análises SQL Completas** - 11 tipos de relatórios
+- ✅ **Análises SQL Completas** - Relatórios de consumo e custos
 - ✅ **Dashboard Visual** - Estatísticas em tempo real
 
 ### 📊 Tipos de Sensores
 
 | Sensor | Modelo | Localização | Função |
 |--------|--------|-------------|--------|
-| Movimento | PIR HC-SR501 | Entrada Principal | Detecta presença |
+| Movimento | PIR HC-SR501 | Entrada Principal | Detecta presença e aciona lâmpadas |
 | Temperatura/Umidade | DHT11 | Sala Principal | Monitora clima |
-| Iluminação | LED | Entrada Principal | Controle automático |
+| Iluminação | LED 100x20W | Entrada Principal | Sistema inteligente |
 
 ---
 
 ## 🏗️ Arquitetura
 
 ```
-┌─────────────┐
-│  Sensores   │ (PIR + DHT11)
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│ Dart Puro   │ (Simulador)
-└──────┬──────┘
-       │
-       ├──────────┐
-       ▼          ▼
-┌──────────┐  ┌──────────┐
-│  MySQL   │  │ Firebase │
-│  Local   │  │  Cloud   │
-└──────────┘  └──────────┘
-       │          │
-       └────┬─────┘
-            ▼
+┌─────────────────┐
+│  Sensores PIR   │ (Movimento)
+│  100 Lâmpadas   │ (20W cada)
+│  DHT11          │ (Temp/Umidade)
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Dart Simulador  │
+│ Cálculo Auto    │ (Consumo + Custo)
+└────────┬────────┘
+         │
+         ├──────────┐
+         ▼          ▼
+┌─────────────┐  ┌─────────────┐
+│   MySQL     │  │  Firebase   │
+│   Local     │  │   Realtime  │
+│ + SP        │  │   Database  │
+└─────────────┘  └─────────────┘
+         │          │
+         └────┬─────┘
+              ▼
      ┌─────────────┐
      │  Análises   │
-     │ Dashboard   │
+     │ Custos/kWh  │
      └─────────────┘
 ```
 
@@ -122,18 +157,29 @@ dart pub get
 
 #### Opção A: MySQL Workbench
 1. Abra o MySQL Workbench
-2. Execute o arquivo `database/schema.sql`
-3. Verifique se o banco `entrega5` foi criado
+2. Execute o arquivo `database/schema.sql` **ATUALIZADO**
+3. Verifique se o banco `entrega5` foi criado com novos campos
 
 #### Opção B: Terminal
 ```bash
 mysql -u root -p < database/schema.sql
 ```
 
-### 4. Insira Dados Iniciais (Opcional)
+### 4. Verifique os Novos Campos
 
-```bash
-mysql -u root -p entrega5 < database/insert_dados.sql
+O schema atualizado inclui:
+
+```sql
+-- Tabela DIM_FILIAL
+Qtd_Lampadas INT DEFAULT 100
+Potencia_Lampada_W INT DEFAULT 20
+Tempo_Ativacao_Min INT DEFAULT 10
+
+-- Tabela FATO_LEITURAS
+Qtd_Lampadas_Ativas INT
+Tempo_Ligado_Min INT
+Consumo_kWh DECIMAL(8,4)
+Custo_Reais DECIMAL(8,4)
 ```
 
 ---
@@ -151,7 +197,7 @@ static final ConnectionSettings _settings = ConnectionSettings(
   user: 'root',
   password: 'SUA_SENHA_AQUI',  // ← Altere aqui
   db: 'entrega5',
-  timeout: Duration(seconds: 30),
+  timeout: Duration(seconds: 60),
 );
 ```
 
@@ -166,21 +212,11 @@ static final ConnectionSettings _settings = ConnectionSettings(
 ```yaml
 dependencies:
   mysql1: ^0.20.0
-  http: ^1.1.0              # ← Adicione
-  dart_jsonwebtoken: ^2.12.0 # ← Adicione
+  http: ^1.1.0
+  dart_jsonwebtoken: ^2.12.0
 ```
 
 4. Execute: `dart pub get`
-
-5. Substitua no código:
-```dart
-// Em database_service.dart
-import 'firebase_service.dart';        // ← Remova
-import 'firebase_realtime_service.dart'; // ← Adicione
-```
-
-#### Para usar Firebase Simulado (padrão):
-Não precisa fazer nada! O sistema já usa arquivo local `firebase_data.json`.
 
 ---
 
@@ -194,26 +230,53 @@ dart run main.dart
 ```
 
 **Saída esperada:**
+
 ```
-🚀 SISTEMA PACKBAG - DART PURO + MySQL REAL
-📡 Sensores: PIR HC-SR501 + DHT11
-🏢 Filiais: Aguai e Casa Branca
-💾 Banco: entrega5 (MySQL Real) + 🔥 Firebase Simulado
+🚀 SISTEMA PACKBAG - MONITORAMENTO IoT v2.0
+
+💡 NOVO SISTEMA DE ILUMINAÇÃO:
+   • 100 Lâmpadas LED por filial
+   • Potência: 20W cada
+   • Tempo: 10 minutos por ativação
+   • Consumo: 0.33 kWh por ativação
+   • Custo: R$ 0,3135 por ativação
 
 ✅ Conectado ao MySQL: entrega5
-📊 Tabelas no banco:
-   - dim_filial
-   - dim_sensor
-   - dim_tempo
-   - fato_leituras
+💡 CONFIGURAÇÃO DE ILUMINAÇÃO:
+   Aguai: 100x20W (10min)
+   Casa Branca: 100x20W (10min)
 
-=== 🎯 INICIANDO SIMULAÇÃO ===
+=== INICIANDO SIMULAÇÃO ===
 
---- 📝 Leitura 1 ---
-💾 Leitura salva via SP: Sensor 2
-🔥 Leitura sincronizada com Firebase: Aguai
-📊 Dados: [Aguai] Temperatura/Umidade (ID:2) | 23.1°C 53.3%
-...
+📝 LEITURA 1/10
+─────────────────────────────────────
+💾 Leitura salva via SP: Sensor 7
+   💡 100x20W ligadas
+   ⚡ Consumo: 0.3300 kWh
+   💰 Custo: R$ 0,3135
+🔥 Leitura salva no Firebase: Aguai
+
+╔════════════════════════════════════╗
+║  LEITURA SENSOR #7 - Aguai         ║
+╠════════════════════════════════════╣
+║  Tipo: Iluminacao                  ║
+║  Localização: Entrada Principal    ║
+║  Timestamp: 2024-11-15 14:32:15    ║
+╠════════════════════════════════════╣
+║  🚨 DETECÇÃO:                       ║
+║     Movimento: DETECTADO           ║
+║     Sistema de Iluminação: ATIVO   ║
+║  💡 ILUMINAÇÃO:                     ║
+║     Lâmpadas Acionadas: 100 un     ║
+║     Potência Unitária: 20W         ║
+║     Potência Total: 2000W          ║
+║     Tempo Ligado: 10 minutos       ║
+║  ⚡ ENERGIA:                         ║
+║     Consumo: 0.3300 kWh            ║
+║     Consumo: 330.00 Wh             ║
+║     Tarifa: R$ 0.95/kWh            ║
+║     Custo: R$ 0.3135               ║
+╚════════════════════════════════════╝
 ```
 
 ### Verificar Sistema Completo
@@ -221,22 +284,6 @@ dart run main.dart
 ```bash
 dart run verificar_banco.dart
 ```
-
-Mostra:
-- Status MySQL
-- Status Firebase
-- Comparação entre ambos
-- Conectividade por filial
-- Resumo geral
-
-### Executar Análises SQL
-
-No MySQL Workbench, execute:
-```bash
-database/analise_sql_completa.sql
-```
-
-Gera 11 tipos de relatórios completos!
 
 ---
 
@@ -246,34 +293,33 @@ Gera 11 tipos de relatórios completos!
 sistema-packbag/
 │
 ├── lib/
-│   ├── main.dart                          # Ponto de entrada
-│   ├── verificar_banco.dart               # Script de verificação
+│   ├── main.dart                          # ✅ ATUALIZADO
+│   ├── verificar_banco.dart               # Verificação
 │   │
-│   ├── models/                            # Modelos de dados
+│   ├── models/                            
 │   │   ├── filial.dart
 │   │   ├── sensor.dart
-│   │   └── leitura_sensor.dart
+│   │   └── leitura_sensor.dart            # ✅ ATUALIZADO (novos campos)
 │   │
-│   ├── services/                          # Lógica de negócio
-│   │   ├── database_service.dart          # MySQL
-│   │   ├── firebase_service.dart          # Firebase Simulado
+│   ├── services/                          
+│   │   ├── database_service.dart          # ✅ ATUALIZADO (cálculo auto)
 │   │   ├── firebase_realtime_service.dart # Firebase Real
-│   │   └── simulador_service.dart         # Gerador de dados
+│   │   └── simulador_service.dart         # ✅ ATUALIZADO (100 lâmpadas)
 │   │
-│   ├── data/                              # Dados estáticos
-│   │   └── sensores_data.dart
+│   ├── data/                              
+│   │   └── sensores_data.dart             # ✅ ATUALIZADO (config iluminação)
 │   │
-│   └── config/                            # Configurações
-│       └── firebase-credentials.json      # (não versionado)
+│   └── config/                            
+│       └── firebase-credentials.json      
 │
-├── database/                              # Scripts SQL
-│   ├── schema.sql                         # Estrutura do banco
-│   ├── insert_dados.sql                   # Dados iniciais
-│   └── analise_sql_completa.sql           # Análises
+├── database/                              
+│   ├── schema.sql                         # ✅ ATUALIZADO (novos campos)
+│   ├── insert_dados.sql                   
+│   └── analise_sql_completa.sql           # ✅ ATUALIZADO (análise custos)
 │
-├── pubspec.yaml                           # Dependências
-├── README.md                              # Este arquivo
-└── .gitignore                             # Arquivos ignorados
+├── pubspec.yaml                           # ✅ VERIFICAR dependências
+├── README.md                              # ✅ ESTE ARQUIVO
+└── .gitignore                             
 
 ```
 
@@ -281,38 +327,51 @@ sistema-packbag/
 
 ## 🗄️ Banco de Dados
 
-### Modelo Estrela (Star Schema)
+### Modelo Estrela (Star Schema) - ATUALIZADO
 
 ```
-        ┌──────────────┐
-        │  DIM_FILIAL  │
-        └──────┬───────┘
+        ┌──────────────────┐
+        │  DIM_FILIAL      │
+        │  + Qtd_Lampadas  │ ← NOVO
+        │  + Potencia_W    │ ← NOVO
+        │  + Tempo_Min     │ ← NOVO
+        └──────┬───────────┘
+               │
+        ┌──────▼───────────┐
+        │  DIM_SENSOR      │
+        └──────┬───────────┘
+               │
+        ┌──────▼─────────────────┐
+        │ FATO_LEITURAS          │
+        │ + Qtd_Lampadas_Ativas  │ ← NOVO
+        │ + Tempo_Ligado_Min     │ ← NOVO
+        │ + Consumo_kWh          │ ← ATUALIZADO
+        │ + Custo_Reais          │ ← NOVO
+        └──────┬─────────────────┘
                │
         ┌──────▼───────┐
-        │  DIM_SENSOR  │
-        └──────┬───────┘
-               │
-        ┌──────▼────────┐
-        │ FATO_LEITURAS │◄─────┐
-        └──────┬────────┘      │
-               │                │
-        ┌──────▼───────┐        │
-        │  DIM_TEMPO   │        │
-        └──────────────┘        │
-                                │
-                    (Foreign Keys)
+        │  DIM_TEMPO   │
+        └──────────────┘
 ```
 
-### Tabelas
+### Novos Campos
 
-| Tabela | Registros | Descrição |
-|--------|-----------|-----------|
-| `DIM_FILIAL` | 2 | Aguai e Casa Branca |
-| `DIM_SENSOR` | 6 | 3 sensores por filial |
-| `DIM_TEMPO` | Variável | Dimensão temporal |
-| `FATO_LEITURAS` | Crescente | Todas as leituras |
+#### DIM_FILIAL
+```sql
+Qtd_Lampadas INT DEFAULT 100
+Potencia_Lampada_W INT DEFAULT 20
+Tempo_Ativacao_Min INT DEFAULT 10
+```
 
-### Stored Procedure
+#### FATO_LEITURAS
+```sql
+Qtd_Lampadas_Ativas INT NULL DEFAULT 0
+Tempo_Ligado_Min INT NULL DEFAULT 0
+Consumo_kWh DECIMAL(8,4) NULL DEFAULT '0.0000'
+Custo_Reais DECIMAL(8,4) NULL DEFAULT '0.0000'
+```
+
+### Stored Procedure Atualizada
 
 ```sql
 CALL sp_inserir_leitura(
@@ -324,56 +383,104 @@ CALL sp_inserir_leitura(
 );
 ```
 
-**Vantagens:**
-- ✅ Insere automaticamente na `DIM_TEMPO`
-- ✅ Calcula consumo de energia
-- ✅ Determina período do dia
-- ✅ Otimiza performance
+**Cálculo Automático:**
+```sql
+-- Se lâmpada ligada:
+SET v_consumo = (v_potencia_w * v_qtd_lampadas * (v_tempo_min / 60.0)) / 1000.0;
+-- Exemplo: (20 * 100 * 0.167) / 1000 = 0.33 kWh
+
+SET v_custo = v_consumo * v_tarifa_kwh;
+-- Exemplo: 0.33 * 0.95 = R$ 0,3135
+```
 
 ---
 
 ## 🔥 Firebase
 
-### Modo Simulado (Padrão)
-
-Armazena dados em `firebase_data.json`:
+### Estrutura no Firebase Realtime Database
 
 ```json
 {
-  "leituras": [
-    {
-      "id": "2_1699123456789",
-      "idSensor": 2,
+  "leituras": {
+    "-ABC123": {
+      "id": "7_1699123456789",
+      "idSensor": 7,
       "filial": "Aguai",
-      "temperatura": 24.5,
-      "umidade": 62.3,
-      "timestamp": "2024-11-11T15:30:45.123Z"
+      "tipoSensor": "Iluminacao",
+      "lampadaLigada": true,
+      "qtdLampadasAtivas": 100,
+      "potenciaLampadaW": 20,
+      "tempoLigadoMin": 10,
+      "consumoKwh": 0.33,
+      "custoReais": 0.3135,
+      "tarifaKwh": 0.95,
+      "timestamp": "2024-11-15T14:32:15.123Z"
     }
-  ]
+  }
 }
 ```
 
-### Modo Real (Opcional)
+---
 
-**Estrutura no Firebase Realtime Database:**
+## 💰 Análise de Custos
+
+### Consumo por Ativação
 
 ```
-packbag-iot/
-└── leituras/
-    ├── -NxYz123abc/
-    │   ├── id: "2_1699123456789"
-    │   ├── filial: "Aguai"
-    │   ├── temperatura: 24.5
-    │   └── ...
-    └── -NxYz456def/
-        └── ...
+1 ativação = 100 lâmpadas × 20W × 10min
+           = 2000W × 0.167h
+           = 333.33 Wh
+           = 0.33 kWh
 ```
 
-**Vantagens:**
-- ✅ Acesso em tempo real
-- ✅ Sincronização automática
-- ✅ Disponível de qualquer lugar
-- ✅ Dashboard no Firebase Console
+### Custo por Ativação
+
+```
+0.33 kWh × R$ 0,95/kWh = R$ 0,3135
+```
+
+### Estimativa Mensal (exemplo)
+
+```
+Cenário: 50 ativações/dia por filial
+
+Diário:
+  50 ativações × 0.33 kWh = 16.5 kWh
+  50 ativações × R$ 0,3135 = R$ 15,68
+
+Mensal (30 dias):
+  16.5 kWh × 30 = 495 kWh
+  R$ 15,68 × 30 = R$ 470,40
+
+Duas Filiais:
+  Consumo: 990 kWh/mês
+  Custo: R$ 940,80/mês
+```
+
+### Consultas SQL de Análise
+
+```sql
+-- Consumo total por filial
+SELECT 
+  df.Nome_Filial,
+  SUM(fl.Consumo_kWh) as consumo_total_kwh,
+  SUM(fl.Custo_Reais) as custo_total_reais,
+  COUNT(CASE WHEN fl.Lampada_Ligada = 1 THEN 1 END) as ativacoes
+FROM FATO_LEITURAS fl
+JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
+GROUP BY df.Nome_Filial;
+
+-- Consumo por período do dia
+SELECT 
+  dt.Periodo_Dia,
+  COUNT(*) as ativacoes,
+  SUM(fl.Consumo_kWh) as consumo_kwh,
+  SUM(fl.Custo_Reais) as custo_reais
+FROM FATO_LEITURAS fl
+JOIN DIM_TEMPO dt ON fl.ID_Data = dt.ID_Data
+WHERE fl.Lampada_Ligada = 1
+GROUP BY dt.Periodo_Dia;
+```
 
 ---
 
@@ -381,55 +488,9 @@ packbag-iot/
 
 | Script | Comando | Descrição |
 |--------|---------|-----------|
-| **Simulação Principal** | `dart run main.dart` | Gera 8 leituras simuladas |
-| **Verificação Completa** | `dart run verificar_banco.dart` | Verifica MySQL + Firebase |
-| **Teste Firebase** | `dart run test_firebase.dart` | Testa integração Firebase Real |
-| **Análise SQL** | MySQL Workbench | Executa `analise_sql_completa.sql` |
-
----
-
-## 📊 Análises SQL
-
-O arquivo `database/analise_sql_completa.sql` gera **11 relatórios**:
-
-1. **Resumo Geral** - Visão geral do sistema
-2. **Análise por Filial** - Desempenho Aguai vs Casa Branca
-3. **Análise por Sensor** - Performance de cada tipo
-4. **Temperatura/Umidade** - Estatísticas (min, max, média, desvio)
-5. **Movimento** - Taxa de detecção e eficiência
-6. **Consumo de Energia** - Custos e consumo por filial/sensor
-7. **Análise Temporal** - Por hora, dia da semana, período
-8. **Alertas** - Temperaturas extremas, sensores inativos
-9. **Rankings** - Sensores mais ativos
-10. **Tendências** - Correlações e insights
-11. **Últimas Leituras** - Visão detalhada recente
-
----
-
-## 📝 To-Do
-
-### Funcionalidades Futuras
-
-- [ ] Adicionar mais 15 dias de leituras históricas
-- [ ] Implementar autenticação de usuários
-- [ ] Dashboard web com Flutter
-- [ ] Alertas por email/SMS
-- [ ] Machine Learning para predições
-- [ ] API REST para integração externa
-- [ ] Gráficos interativos (Plotly/Chart.js)
-- [ ] Exportação de relatórios (PDF/Excel)
-- [ ] Modo escuro no dashboard
-- [ ] Suporte a mais filiais
-
-### Melhorias Técnicas
-
-- [ ] Testes unitários
-- [ ] CI/CD com GitHub Actions
-- [ ] Docker para ambiente de desenvolvimento
-- [ ] Cache Redis para performance
-- [ ] Backup automático do banco
-- [ ] Logs estruturados
-- [ ] Documentação API
+| **Simulação Principal** | `dart run main.dart` | 10 leituras com cálculo de custos |
+| **Verificação Completa** | `dart run verificar_banco.dart` | MySQL + Firebase + Custos |
+| **Análise SQL** | MySQL Workbench | `analise_sql_completa.sql` atualizado |
 
 ---
 
@@ -438,33 +499,62 @@ O arquivo `database/analise_sql_completa.sql` gera **11 relatórios**:
 ### Erro: "Cannot connect to MySQL"
 
 **Solução:**
-1. Verifique se o MySQL está rodando:
-   ```bash
-   mysql -u root -p
-   ```
+1. Verifique se o MySQL está rodando
 2. Confirme usuário e senha em `database_service.dart`
-3. Certifique-se que o banco `entrega5` existe
+3. Execute o schema **ATUALIZADO**:
+   ```bash
+   mysql -u root -p entrega5 < database/schema.sql
+   ```
 
-### Erro: "Firebase credentials not found"
+### Erro: "Unknown column 'Qtd_Lampadas_Ativas'"
+
+**Causa:** Schema antigo ainda em uso.
 
 **Solução:**
-- Se usar Firebase Real: baixe `firebase-credentials.json`
-- Se usar Firebase Simulado: ignore o erro (é normal)
+```sql
+-- Adicionar novos campos manualmente
+ALTER TABLE DIM_FILIAL 
+ADD COLUMN Qtd_Lampadas INT DEFAULT 100,
+ADD COLUMN Potencia_Lampada_W INT DEFAULT 20,
+ADD COLUMN Tempo_Ativacao_Min INT DEFAULT 10;
 
-### Erro: "Stored procedure not found"
-
-**Solução:**
-Execute novamente o `schema.sql`:
-```bash
-mysql -u root -p entrega5 < database/schema.sql
+ALTER TABLE FATO_LEITURAS
+ADD COLUMN Qtd_Lampadas_Ativas INT DEFAULT 0,
+ADD COLUMN Tempo_Ligado_Min INT DEFAULT 0,
+ADD COLUMN Custo_Reais DECIMAL(8,4) DEFAULT 0.0000;
 ```
 
-### Leituras não aparecem
+### Custos não aparecem
 
 **Solução:**
-1. Verifique conexão MySQL
-2. Confirme que os sensores estão em `sensores_data.dart`
-3. Execute `verificar_banco.dart` para diagnóstico
+1. Verifique se a Stored Procedure foi atualizada
+2. Recrie a SP:
+   ```bash
+   mysql -u root -p entrega5 < database/schema.sql
+   ```
+3. Execute novamente o simulador
+
+---
+
+## 📊 Changelog v2.0
+
+### Adicionado
+- ✅ Sistema de 100 lâmpadas LED 20W por filial
+- ✅ Cálculo automático de consumo (kWh)
+- ✅ Cálculo automático de custos (R$)
+- ✅ Novos campos no banco de dados
+- ✅ Stored Procedure atualizada
+- ✅ Análise de custos por filial/período
+- ✅ View `vw_consumo_detalhado`
+- ✅ Relatórios de consumo energético
+
+### Modificado
+- ✅ Modelo `LeituraSensor` com novos campos
+- ✅ `DatabaseService` com métodos de análise
+- ✅ `SimuladorService` com sistema de iluminação
+- ✅ `SensoresData` com configuração de lâmpadas
+- ✅ Schema SQL completo
+- ✅ README atualizado
 
 ---
 
@@ -474,27 +564,19 @@ Este projeto é parte do trabalho acadêmico da **UNIFEOB** - Centro Universitá
 
 ---
 
-## 📞 Contato
-
-**Dúvidas ou sugestões?**
-
-- Eric Butzloff Gudera - MySQL Integration
-- Gabrielly Cristina dos Reis - Firebase Integration
-- Lindsay Cristine Oliveira Souza - Estrutura e Configuração
-
----
-
 ## 🙏 Agradecimentos
 
-- **UNIFEOB** - Pela infraestrutura e suporte
-- **Professores** - Pela orientação
-- **Packbag** - Pela oportunidade de desenvolvimento real
+- **UNIFEOB** - Infraestrutura e suporte
+- **Professores** - Orientação
+- **Packbag** - Oportunidade de desenvolvimento
 
 ---
 
 <div align="center">
 
-**🚀 Sistema PackBag - Monitoramento IoT 🚀**
+**🚀 Sistema PackBag v2.0 - Monitoramento IoT Inteligente 🚀**
+
+**💡 100 Lâmpadas LED × 20W = Controle Total de Energia 💡**
 
 Feito com ❤️ em São João da Boa Vista, SP
 
