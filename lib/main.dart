@@ -1,91 +1,187 @@
+// ════════════════════════════════════════════════════════════════
+// SISTEMA PACKBAG - MONITORAMENTO IoT
+// 100 Lâmpadas LED 20W por Filial
+// Tempo de Ativação: 10 minutos
+// Tarifa: R$ 0,95/kWh
+// ════════════════════════════════════════════════════════════════
+
 import 'dart:async';
 import 'services/simulador_service.dart';
 import 'services/database_service.dart';
-import 'services/firebase_realtime_service.dart'; 
+import 'services/firebase_realtime_service.dart';
+import 'models/leitura_sensor.dart';
 
+// ════════════════════════════════════════════════════════════════
+// EXIBIR INFORMAÇÕES DO BANCO
+// ════════════════════════════════════════════════════════════════
 Future<void> demonstrarORM() async {
-  print('\n=== DEMONSTRANDO DADOS DO BANCO ===');
+  print('\n═══════════════════════════════════════════════════════════');
+  print('📊 DADOS DO SISTEMA');
+  print('═══════════════════════════════════════════════════════════\n');
   
+  // Filiais
   final filiais = await DatabaseService.getFiliais();
-  final sensores = await DatabaseService.getSensores();
-  
-  print('FILIAIS (${filiais.length}):');
+  print('🏢 FILIAIS (${filiais.length}):');
   for (final filial in filiais) {
-    print('  ${filial['ID_Filial']}: ${filial['Nome_Filial']} - ${filial['Cidade']}/${filial['Estado']}');
+    print('   ${filial['ID_Filial']}: ${filial['Nome_Filial']} - ${filial['Cidade']}/${filial['Estado']}');
+    print('      💡 ${filial['Qtd_Lampadas']}x${filial['Potencia_Lampada_W']}W '
+          '(${filial['Tempo_Ativacao_Min']}min)');
   }
   
-  print('\n SENSORES ATIVOS (${sensores.length}):');
+  // Sensores
+  final sensores = await DatabaseService.getSensores();
+  print('\n📡 SENSORES ATIVOS (${sensores.length}):');
   for (final sensor in sensores) {
-    print('  ${sensor['ID_Sensor']}: ${sensor['Tipo_Sensor']} - ${sensor['Nome_Filial']}');
+    final status = sensor['Status'] == 'Ativo' ? '✅' : '⚠️';
+    print('   $status ${sensor['ID_Sensor']}: ${sensor['Tipo_Sensor']} - ${sensor['Nome_Filial']}');
   }
 
-  final leituras = await DatabaseService.getLeituras();
-  print('\n ÚLTIMAS LEITURAS (${leituras.length} no total):');
+  // Últimas leituras
+  final leituras = await DatabaseService.getLeituras(limite: 5);
+  print('\n📝 ÚLTIMAS 5 LEITURAS (${leituras.length} encontradas):');
   if (leituras.isNotEmpty) {
-    final ultimas = leituras.take(3);
-    for (final leitura in ultimas) {
-      print('  ${leitura['Timestamp']} - Sensor ${leitura['ID_Sensor']}: '
-            'Temp: ${leitura['Temperatura']}°C, '
-            'Umid: ${leitura['Umidade']}%');
+    for (final leitura in leituras) {
+      print('\n   📍 ${leitura['Nome_Filial']} - ${leitura['Tipo_Sensor']}');
+      print('      ID: ${leitura['ID_Leitura']} | Sensor: ${leitura['ID_Sensor']}');
+      print('      Timestamp: ${leitura['Timestamp']}');
+      
+      if (leitura['Temperatura'] != null) {
+        print('      🌡️  Temperatura: ${leitura['Temperatura']}°C');
+      }
+      if (leitura['Umidade'] != null) {
+        print('      💧 Umidade: ${leitura['Umidade']}%');
+      }
+      if (leitura['Lampada_Ligada'] == 1) {
+        print('      💡 Lâmpadas: ${leitura['Qtd_Lampadas_Ativas']} unidades');
+        print('      ⚡ Consumo: ${leitura['Consumo_kWh']} kWh');
+        print('      💰 Custo: R\$ ${leitura['Custo_Reais']}');
+      }
     }
   }
 }
 
+// ════════════════════════════════════════════════════════════════
+// EXIBIR ESTATÍSTICAS COMPLETAS
+// ════════════════════════════════════════════════════════════════
 Future<void> demonstrarConsultasORM() async {
-  print('\n=== ESTATÍSTICAS DO SISTEMA ===');
+  print('\n═══════════════════════════════════════════════════════════');
+  print('📈 ESTATÍSTICAS FINAIS');
+  print('═══════════════════════════════════════════════════════════\n');
   
-  final estatisticas = await DatabaseService.getEstatisticas();
-  estatisticas.forEach((key, value) {
-    print('  $key: $value');
-  });
+  final simulador = SimuladorService();
+  await simulador.exibirEstatisticas();
   
+  // Verificar Firebase
   final leiturasFirebase = await FirebaseRealtimeService.getLeituras();
-  print('\n Leituras no Firebase Real: ${leiturasFirebase.length}');
+  print('🔥 Firebase Real: ${leiturasFirebase.length} leituras sincronizadas');
 }
 
+// ════════════════════════════════════════════════════════════════
+// FUNÇÃO PRINCIPAL
+// ════════════════════════════════════════════════════════════════
 void main() async {
   print('''
- SISTEMA PACKBAG - DART PURO + MySQL + Firebase REAL
- Sensores: PIR HC-SR501 + DHT11
- Filiais: Aguai e Casa Branca
- Banco: entrega5 (MySQL) +  Firebase Realtime Database
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║         🚀 SISTEMA PACKBAG - MONITORAMENTO IoT 🚀              ║
+║                                                                ║
+║  📡 Sensores: PIR HC-SR501 + DHT11                             ║
+║  🏢 Filiais: Aguai e Casa Branca                               ║
+║  💾 Banco: MySQL (entrega5) + Firebase Real                    ║
+║                                                                ║
+║  💡 NOVO SISTEMA DE ILUMINAÇÃO:                                ║
+║     • 100 Lâmpadas LED por filial                              ║
+║     • Potência: 20W cada                                       ║
+║     • Tempo: 10 minutos por ativação                           ║
+║     • Consumo: 0.33 kWh por ativação                           ║
+║     • Custo: R\$ 0,3135 por ativação                           ║
+║     • Tarifa: R\$ 0,95/kWh                                     ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
 ''');
 
   try {
+    // ════════════════════════════════════════════════════════════════
+    // INICIALIZAR CONEXÕES
+    // ════════════════════════════════════════════════════════════════
     await DatabaseService.testarConexao();
-    await FirebaseRealtimeService.initialize(); // ← MUDANÇA AQUI
+    print('');
+    await FirebaseRealtimeService.initialize();
+    print('');
     
+    // ════════════════════════════════════════════════════════════════
+    // DEMONSTRAR DADOS EXISTENTES
+    // ════════════════════════════════════════════════════════════════
     await demonstrarORM();
 
+    // ════════════════════════════════════════════════════════════════
+    // SIMULAÇÃO DE LEITURAS
+    // ════════════════════════════════════════════════════════════════
     final simulador = SimuladorService();
     var contador = 0;
+    const totalLeituras = 10; // Aumentado para 10 leituras
 
-    print('\n=== INICIANDO SIMULAÇÃO ===');
+    print('\n═══════════════════════════════════════════════════════════');
+    print('🎯 INICIANDO SIMULAÇÃO - $totalLeituras LEITURAS');
+    print('═══════════════════════════════════════════════════════════\n');
     
     final timer = Timer.periodic(Duration(seconds: 3), (timer) async {
       contador++;
       
       try {
-        print('\n--- Leitura $contador ---');
+        print('─────────────────────────────────────────────────────────');
+        print('📝 LEITURA $contador/$totalLeituras');
+        print('─────────────────────────────────────────────────────────');
+        
         final leitura = await simulador.gerarLeituraSimulada();
-        print(' Dados: ${leitura.toString()}');
+        
+        // Exibir detalhes completos
+        if (leitura.lampadaLigada) {
+          print(leitura.toDetailedString());
+        } else {
+          print('📊 ${leitura.toString()}');
+          print('');
+        }
         
       } catch (e) {
-        print(' Erro na leitura: $e');
+        print('❌ Erro na leitura: $e\n');
       }
 
-      if (contador >= 8) {
+      // ════════════════════════════════════════════════════════════════
+      // FINALIZAR SIMULAÇÃO
+      // ════════════════════════════════════════════════════════════════
+      if (contador >= totalLeituras) {
         timer.cancel();
+        
         await demonstrarConsultasORM();
-        print('\n SIMULAÇÃO CONCLUÍDA!');
-        print(' Dados salvos no MySQL: entrega5');
-        print(' Dados no Firebase Console');
-        print('\n Execute novamente: dart main.dart');
+        
+        print('\n═══════════════════════════════════════════════════════════');
+        print('✅ SIMULAÇÃO CONCLUÍDA COM SUCESSO!');
+        print('═══════════════════════════════════════════════════════════\n');
+        print('📊 Dados salvos no MySQL: entrega5');
+        print('🔥 Dados sincronizados no Firebase Console');
+        print('\n💡 PRÓXIMOS COMANDOS:');
+        print('   • Executar novamente: dart run main.dart');
+        print('   • Verificar banco: dart run verificar_banco.dart');
+        print('   • Ver análises SQL: Execute analise_sql_completa.sql no MySQL Workbench');
+        print('\n═══════════════════════════════════════════════════════════\n');
+        
+        await DatabaseService.close();
       }
     });
     
-  } catch (e) {
-    print('\n ERRO CRÍTICO: $e');
-    print(' Verifique MySQL e Firebase configurados');
+  } catch (e, stackTrace) {
+    print('\n╔════════════════════════════════════════════════════════════╗');
+    print('║  ❌ ERRO CRÍTICO NO SISTEMA                                 ║');
+    print('╚════════════════════════════════════════════════════════════╝\n');
+    print('Erro: $e\n');
+    print('Stack Trace:');
+    print(stackTrace);
+    print('\n💡 VERIFICAÇÕES:');
+    print('   1. MySQL está rodando?');
+    print('   2. Banco "entrega5" foi criado?');
+    print('   3. Senha correta em database_service.dart?');
+    print('   4. Firebase credentials configurado?');
+    print('\n📝 Execute: dart run verificar_banco.dart para diagnóstico\n');
   }
 }
