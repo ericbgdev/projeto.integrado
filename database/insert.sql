@@ -1,13 +1,27 @@
 USE entrega5;
 
--- Desabilitar verificações temporariamente para performance
+
 SET FOREIGN_KEY_CHECKS = 0;
 SET AUTOCOMMIT = 0;
 START TRANSACTION;
 
--- ════════════════════════════════════════════════════════════════
--- STORED PROCEDURE PARA GERAR LEITURAS
--- ════════════════════════════════════════════════════════════════
+
+INSERT IGNORE INTO dim_filial (ID_Filial, Nome_Filial, Cidade, Estado, Endereco, Gerente, Telefone, CEP) VALUES
+(1, 'Aguai', 'Aguai', 'SP', 'Av. Francisco Gonçalves, 409', 'João Silva', '(19) 3652-1234', '13868-000'),
+(2, 'Casa Branca', 'Casa Branca', 'SP', 'BLOCO B Estrada Acesso, SP-340', 'Maria Santos', '(19) 3671-5678', '13700-000');
+
+SELECT 'Filiais inseridas/verificadas' AS Status;
+
+INSERT IGNORE INTO dim_sensor (ID_Sensor, Tipo_Sensor, Modelo, Localizacao, ID_Filial, Status) VALUES
+(1, 'Movimento', 'PIR HC-SR501', 'Entrada Principal', 1, 'Ativo'),
+(2, 'Temperatura/Umidade', 'DHT11', 'Sala Principal', 1, 'Ativo'),
+(4, 'Movimento', 'PIR HC-SR501', 'Entrada Principal', 2, 'Ativo'),
+(5, 'Temperatura/Umidade', 'DHT11', 'Sala Principal', 2, 'Ativo'),
+(7, 'Iluminacao', 'LED', 'Entrada Principal', 1, 'Ativo'),
+(8, 'Iluminacao', 'LED', 'Entrada Principal', 2, 'Ativo');
+
+SELECT 'Sensores inseridos/verificados' AS Status;
+
 
 DELIMITER $$
 
@@ -26,14 +40,11 @@ BEGIN
     DECLARE v_hora INT;
     DECLARE v_minuto INT;
     DECLARE v_tipo_sensor VARCHAR(50);
-    
-    -- Array de IDs de sensores (1, 2, 4, 5, 7, 8)
-    DECLARE v_sensores VARCHAR(20) DEFAULT '1,2,4,5,7,8';
     DECLARE v_pos INT;
-    DECLARE v_sensor_str VARCHAR(2);
     
-    WHILE i < 1000 DO
-        -- Selecionar sensor aleatório
+    
+    WHILE i < 3000 DO
+       
         SET v_pos = FLOOR(1 + RAND() * 6);
         SET v_sensor_id = CASE v_pos
             WHEN 1 THEN 1
@@ -44,13 +55,13 @@ BEGIN
             ELSE 8
         END;
         
-        -- Obter tipo do sensor
+        
         SELECT Tipo_Sensor INTO v_tipo_sensor 
         FROM DIM_SENSOR 
         WHERE ID_Sensor = v_sensor_id;
         
-        -- Gerar timestamp aleatório nos últimos 15 dias
-        SET v_dias_atras = FLOOR(RAND() * 15);
+        
+        SET v_dias_atras = FLOOR(RAND() * 30);
         SET v_hora = FLOOR(RAND() * 24);
         SET v_minuto = FLOOR(RAND() * 60);
         SET v_timestamp = DATE_SUB(NOW(), INTERVAL v_dias_atras DAY) 
@@ -58,17 +69,18 @@ BEGIN
                          + INTERVAL v_minuto MINUTE
                          + INTERVAL FLOOR(RAND() * 60) SECOND;
         
-        -- Gerar dados baseados no tipo de sensor
+ 
+        
         IF v_tipo_sensor = 'Temperatura/Umidade' THEN
-            -- Temperatura: 18-32°C (com alguns picos até 38°C)
-            IF RAND() < 0.1 THEN
+            
+            IF RAND() < 0.10 THEN
                 SET v_temperatura = 33.0 + (RAND() * 5.0);
             ELSE
                 SET v_temperatura = 18.0 + (RAND() * 14.0);
             END IF;
             
-            -- Umidade: 35-85% (com alguns picos até 98%)
-            IF RAND() < 0.1 THEN
+           
+            IF RAND() < 0.10 THEN
                 SET v_umidade = 86.0 + (RAND() * 12.0);
             ELSE
                 SET v_umidade = 35.0 + (RAND() * 50.0);
@@ -81,31 +93,29 @@ BEGIN
             SET v_temperatura = NULL;
             SET v_umidade = NULL;
             
-            -- Mais movimento durante o dia (6h-18h)
+           
             IF v_hora >= 6 AND v_hora < 18 THEN
-                SET v_movimento = IF(RAND() < 0.4, 1, 0);
+                SET v_movimento = IF(RAND() < 0.40, 1, 0);
             ELSE
                 SET v_movimento = IF(RAND() < 0.15, 1, 0);
             END IF;
             
             SET v_lampada = v_movimento;
             
-        ELSE -- Iluminacao
+        ELSE 
             SET v_temperatura = NULL;
             SET v_umidade = NULL;
-            
-            -- Lâmpadas mais ativas no período noturno (18h-6h)
+           
             IF v_hora >= 18 OR v_hora < 6 THEN
-                SET v_movimento = IF(RAND() < 0.5, 1, 0);
+                SET v_movimento = IF(RAND() < 0.50, 1, 0);
             ELSE
-                SET v_movimento = IF(RAND() < 0.3, 1, 0);
+                SET v_movimento = IF(RAND() < 0.30, 1, 0);
             END IF;
             
             SET v_lampada = v_movimento;
         END IF;
         
-        -- Inserir usando a stored procedure existente
-        -- Mas precisamos ajustar o timestamp manualmente
+       
         INSERT INTO FATO_LEITURAS (
             ID_Sensor, 
             ID_Filial, 
@@ -129,12 +139,11 @@ BEGIN
             v_lampada,
             IF(v_lampada = 1, 0.0500, 0.0000),
             v_timestamp,
-            85 + FLOOR(RAND() * 15),
+            85 + FLOOR(RAND() * 15), -- Qualidade: 85-100%
             'Válida'
         FROM DIM_SENSOR s
         WHERE s.ID_Sensor = v_sensor_id;
         
-        -- Inserir na DIM_TEMPO se não existir
         INSERT IGNORE INTO DIM_TEMPO (
             ID_Data,
             Data_Completa,
@@ -170,110 +179,142 @@ BEGIN
         
         SET i = i + 1;
         
-        -- Feedback a cada 100 leituras
-        IF MOD(i, 100) = 0 THEN
-            SELECT CONCAT('✅ Progresso: ', i, ' leituras inseridas...') AS Status;
+        
+        IF MOD(i, 500) = 0 THEN
+            SELECT CONCAT('Progresso: ', i, '/3000 leituras inseridas (', ROUND(i/30, 1), '%)') AS Status;
         END IF;
         
     END WHILE;
     
-    SELECT CONCAT('🎉 Total de ', i, ' leituras inseridas com sucesso!') AS Resultado;
+    SELECT CONCAT('Total de ', i, ' leituras inseridas com sucesso!') AS Resultado;
     
 END$$
 
 DELIMITER ;
 
--- ════════════════════════════════════════════════════════════════
--- EXECUTAR A PROCEDURE
--- ════════════════════════════════════════════════════════════════
-
-SELECT '🚀 Iniciando inserção de 500 leituras...' AS Status;
-SELECT '⏱️  Isso pode levar 30-60 segundos...' AS Info;
+SELECT '════════════════════════════════════════════════' AS '';
+SELECT 'INICIANDO INSERÇÃO DE 3000 LEITURAS' AS '';
+SELECT 'Tempo estimado: 2-3 minutos' AS '';
+SELECT 'Período: últimos 30 dias' AS '';
+SELECT '════════════════════════════════════════════════' AS '';
 
 CALL sp_gerar_leituras_historico();
 
--- Commit da transação
+
 COMMIT;
 
--- Reabilitar verificações
 SET FOREIGN_KEY_CHECKS = 1;
 SET AUTOCOMMIT = 1;
 
--- ════════════════════════════════════════════════════════════════
--- VERIFICAÇÃO DOS DADOS INSERIDOS
--- ════════════════════════════════════════════════════════════════
+SELECT 'DADOS SALVOS PERMANENTEMENTE NO DISCO!' AS '';
 
-SELECT '═══════════════════════════════════════' AS '';
+
+SELECT '════════════════════════════════════════════════' AS '';
 SELECT '📊 VERIFICAÇÃO DOS DADOS INSERIDOS' AS '';
-SELECT '═══════════════════════════════════════' AS '';
+SELECT '════════════════════════════════════════════════' AS '';
 
--- Total de leituras
+
 SELECT COUNT(*) AS 'Total de Leituras' FROM FATO_LEITURAS;
 
--- Leituras por filial
+
 SELECT 
     f.Nome_Filial AS 'Filial',
-    COUNT(*) AS 'Total Leituras'
+    COUNT(*) AS 'Total Leituras',
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM FATO_LEITURAS), 1) AS 'Porcentagem (%)'
 FROM FATO_LEITURAS fl
 JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
 GROUP BY f.Nome_Filial;
 
--- Leituras por sensor
+
 SELECT 
     s.Tipo_Sensor AS 'Tipo Sensor',
-    COUNT(*) AS 'Total Leituras'
+    COUNT(*) AS 'Total Leituras',
+    ROUND(AVG(fl.Temperatura), 1) AS 'Temp Média (°C)',
+    ROUND(AVG(fl.Umidade), 1) AS 'Umid Média (%)',
+    SUM(fl.Movimento_Detectado) AS 'Movimentos',
+    ROUND(SUM(fl.Consumo_kWh), 2) AS 'Consumo Total (kWh)'
 FROM FATO_LEITURAS fl
 JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
 GROUP BY s.Tipo_Sensor;
 
--- Distribuição por período do dia
+
 SELECT 
     t.Periodo_Dia AS 'Período',
-    COUNT(*) AS 'Total Leituras'
+    COUNT(*) AS 'Total Leituras',
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM FATO_LEITURAS), 1) AS '%'
 FROM FATO_LEITURAS fl
 JOIN DIM_TEMPO t ON fl.ID_Data = t.ID_Data
 GROUP BY t.Periodo_Dia
 ORDER BY FIELD(t.Periodo_Dia, 'Madrugada', 'Manhã', 'Tarde', 'Noite');
 
--- Distribuição ao longo dos dias
+
+SELECT 
+    t.DiaSemana AS 'Dia da Semana',
+    COUNT(*) AS 'Leituras',
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM FATO_LEITURAS), 1) AS '%'
+FROM FATO_LEITURAS fl
+JOIN DIM_TEMPO t ON fl.ID_Data = t.ID_Data
+GROUP BY t.DiaSemana
+ORDER BY FIELD(t.DiaSemana, 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo');
+
+
 SELECT 
     DATE(Timestamp) AS 'Data',
-    COUNT(*) AS 'Leituras'
+    COUNT(*) AS 'Leituras',
+    ROUND(AVG(Temperatura), 1) AS 'Temp Média',
+    SUM(Movimento_Detectado) AS 'Movimentos'
 FROM FATO_LEITURAS
 GROUP BY DATE(Timestamp)
-ORDER BY DATE(Timestamp) DESC;
+ORDER BY DATE(Timestamp) DESC
+LIMIT 30;
 
--- Estatísticas de temperatura
+
 SELECT 
-    ROUND(MIN(Temperatura), 1) AS 'Temp Mínima',
-    ROUND(AVG(Temperatura), 1) AS 'Temp Média',
-    ROUND(MAX(Temperatura), 1) AS 'Temp Máxima'
+    ROUND(MIN(Temperatura), 1) AS 'Temp Mínima (°C)',
+    ROUND(AVG(Temperatura), 1) AS 'Temp Média (°C)',
+    ROUND(MAX(Temperatura), 1) AS 'Temp Máxima (°C)',
+    ROUND(STDDEV(Temperatura), 1) AS 'Desvio Padrão'
 FROM FATO_LEITURAS
 WHERE Temperatura IS NOT NULL;
 
--- Estatísticas de umidade
+
 SELECT 
-    ROUND(MIN(Umidade), 1) AS 'Umid Mínima',
-    ROUND(AVG(Umidade), 1) AS 'Umid Média',
-    ROUND(MAX(Umidade), 1) AS 'Umid Máxima'
+    ROUND(MIN(Umidade), 1) AS 'Umid Mínima (%)',
+    ROUND(AVG(Umidade), 1) AS 'Umid Média (%)',
+    ROUND(MAX(Umidade), 1) AS 'Umid Máxima (%)',
+    ROUND(STDDEV(Umidade), 1) AS 'Desvio Padrão'
 FROM FATO_LEITURAS
 WHERE Umidade IS NOT NULL;
 
--- Últimas 10 leituras
+
 SELECT 
-    Timestamp AS 'Data/Hora',
+    SUM(Movimento_Detectado) AS 'Total Movimentos',
+    ROUND(SUM(Movimento_Detectado) * 100.0 / COUNT(*), 1) AS 'Taxa Detecção (%)',
+    SUM(Lampada_Ligada) AS 'Acionamentos Lâmpada',
+    ROUND(SUM(Consumo_kWh), 2) AS 'Consumo Total (kWh)'
+FROM FATO_LEITURAS;
+
+
+SELECT 
+    fl.Timestamp AS 'Data/Hora',
     f.Nome_Filial AS 'Filial',
     s.Tipo_Sensor AS 'Sensor',
     CONCAT(COALESCE(ROUND(fl.Temperatura, 1), '-'), '°C') AS 'Temp',
     CONCAT(COALESCE(ROUND(fl.Umidade, 1), '-'), '%') AS 'Umid',
     IF(fl.Movimento_Detectado = 1, '✅', '❌') AS 'Mov',
-    IF(fl.Lampada_Ligada = 1, '💡', '⚫') AS 'Lamp'
+    IF(fl.Lampada_Ligada = 1, '💡', '⚫') AS 'Lamp',
+    fl.Consumo_kWh AS 'kWh'
 FROM FATO_LEITURAS fl
 JOIN DIM_FILIAL f ON fl.ID_Filial = f.ID_Filial
 JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
 ORDER BY fl.Timestamp DESC
 LIMIT 10;
 
-SELECT '✅ Inserção de 500 leituras concluída!' AS '';
-SELECT '📊 Agora você pode atualizar o Power BI!' AS '';
-SELECT '🎯 Execute: Atualizar dados no Power BI Desktop' AS '';
+
+SELECT '════════════════════════════════════════════════' AS '';
+SELECT 'INSERÇÃO DE 3000 LEITURAS CONCLUÍDA!' AS '';
+SELECT 'Dados salvos permanentemente no MySQL' AS '';
+SELECT 'Período: últimos 30 dias' AS '';
+SELECT 'Agora execute: dart run main.dart' AS '';
+SELECT 'Ou atualize o Power BI para visualizar' AS '';
+SELECT '════════════════════════════════════════════════' AS '';
