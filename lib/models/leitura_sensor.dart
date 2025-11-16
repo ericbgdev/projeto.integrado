@@ -1,4 +1,20 @@
+// ════════════════════════════════════════════════════════════════
+// MODELO: LeituraSensor v2.0
+// Sistema de 100 Lâmpadas LED 20W
+// ════════════════════════════════════════════════════════════════
+
 class LeituraSensor {
+  // ════════════════════════════════════════════════════════════════
+  // CONSTANTES DO SISTEMA DE ILUMINAÇÃO
+  // ════════════════════════════════════════════════════════════════
+  static const int LAMPADAS_POR_FILIAL = 100;
+  static const int POTENCIA_LAMPADA_W = 20;
+  static const int TEMPO_ATIVACAO_MIN = 10;
+  static const double TARIFA_KWH = 0.95;
+
+  // ════════════════════════════════════════════════════════════════
+  // CAMPOS
+  // ════════════════════════════════════════════════════════════════
   final int? idLeitura;
   final int idSensor;
   final int idFilial;
@@ -10,10 +26,18 @@ class LeituraSensor {
   final bool movimentoDetectado;
   final bool lampadaLigada;
   final DateTime timestamp;
-  final double? consumoKwh;
   final int? qualidadeSinal;
   final String? statusLeitura;
 
+  // Novos campos v2.0
+  final int qtdLampadasAtivas;
+  final int tempoLigadoMin;
+  final double consumoKwh;
+  final double custoReais;
+
+  // ════════════════════════════════════════════════════════════════
+  // CONSTRUTOR
+  // ════════════════════════════════════════════════════════════════
   LeituraSensor({
     this.idLeitura,
     required this.idSensor,
@@ -26,11 +50,39 @@ class LeituraSensor {
     required this.movimentoDetectado,
     required this.lampadaLigada,
     required this.timestamp,
-    this.consumoKwh,
     this.qualidadeSinal = 100,
     this.statusLeitura = 'Válida',
-  });
+    int? qtdLampadasAtivas,
+    int? tempoLigadoMin,
+    double? consumoKwh,
+    double? custoReais,
+  })  : qtdLampadasAtivas = qtdLampadasAtivas ?? (lampadaLigada ? LAMPADAS_POR_FILIAL : 0),
+        tempoLigadoMin = tempoLigadoMin ?? (lampadaLigada ? TEMPO_ATIVACAO_MIN : 0),
+        consumoKwh = consumoKwh ?? _calcularConsumo(lampadaLigada),
+        custoReais = custoReais ?? _calcularCusto(lampadaLigada);
 
+  // ════════════════════════════════════════════════════════════════
+  // CÁLCULO DE CONSUMO
+  // Fórmula: (Potência_W × Quantidade × Tempo_H) / 1000 = kWh
+  // ════════════════════════════════════════════════════════════════
+  static double _calcularConsumo(bool ligada) {
+    if (!ligada) return 0.0;
+    // (20W × 100 × 10min) / 1000 = (20 × 100 × 0.167h) / 1000 = 0.33 kWh
+    return (POTENCIA_LAMPADA_W * LAMPADAS_POR_FILIAL * (TEMPO_ATIVACAO_MIN / 60.0)) / 1000.0;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // CÁLCULO DE CUSTO
+  // Fórmula: Consumo_kWh × Tarifa_kWh = R$
+  // ════════════════════════════════════════════════════════════════
+  static double _calcularCusto(bool ligada) {
+    if (!ligada) return 0.0;
+    return _calcularConsumo(ligada) * TARIFA_KWH;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // CONVERSÃO PARA MAP
+  // ════════════════════════════════════════════════════════════════
   Map<String, dynamic> toMap() {
     return {
       if (idLeitura != null) 'ID_Leitura': idLeitura,
@@ -40,13 +92,19 @@ class LeituraSensor {
       'Umidade': umidade,
       'Movimento_Detectado': movimentoDetectado ? 1 : 0,
       'Lampada_Ligada': lampadaLigada ? 1 : 0,
-      'Consumo_kWh': consumoKwh ?? (lampadaLigada ? 0.05 : 0.0),
+      'Qtd_Lampadas_Ativas': qtdLampadasAtivas,
+      'Tempo_Ligado_Min': tempoLigadoMin,
+      'Consumo_kWh': consumoKwh,
+      'Custo_Reais': custoReais,
       'Timestamp': timestamp.toIso8601String(),
       'Qualidade_Sinal': qualidadeSinal,
       'Status_Leitura': statusLeitura,
     };
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // CONVERSÃO DE MAP
+  // ════════════════════════════════════════════════════════════════
   factory LeituraSensor.fromMap(Map<String, dynamic> map) {
     return LeituraSensor(
       idLeitura: map['ID_Leitura'],
@@ -59,13 +117,19 @@ class LeituraSensor {
       umidade: map['Umidade'] != null ? double.parse(map['Umidade'].toString()) : null,
       movimentoDetectado: map['Movimento_Detectado'] == 1,
       lampadaLigada: map['Lampada_Ligada'] == 1,
+      qtdLampadasAtivas: map['Qtd_Lampadas_Ativas'] ?? 0,
+      tempoLigadoMin: map['Tempo_Ligado_Min'] ?? 0,
+      consumoKwh: map['Consumo_kWh'] != null ? double.parse(map['Consumo_kWh'].toString()) : 0.0,
+      custoReais: map['Custo_Reais'] != null ? double.parse(map['Custo_Reais'].toString()) : 0.0,
       timestamp: DateTime.parse(map['Timestamp']),
-      consumoKwh: map['Consumo_kWh'] != null ? double.parse(map['Consumo_kWh'].toString()) : null,
       qualidadeSinal: map['Qualidade_Sinal'],
       statusLeitura: map['Status_Leitura'],
     );
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // TO STRING SIMPLES
+  // ════════════════════════════════════════════════════════════════
   @override
   String toString() {
     String info = '[$filial] $tipoSensor (ID:$idSensor) | ';
@@ -76,5 +140,65 @@ class LeituraSensor {
     if (lampadaLigada) info += 'LÂMPADA ';
     
     return info;
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // TO STRING DETALHADO (para leituras com lâmpadas)
+  // ════════════════════════════════════════════════════════════════
+  String toDetailedString() {
+    final buffer = StringBuffer();
+    
+    buffer.writeln('╔════════════════════════════════════╗');
+    buffer.writeln('║  LEITURA SENSOR #$idSensor - $filial');
+    buffer.writeln('╠════════════════════════════════════╣');
+    buffer.writeln('║  Tipo: $tipoSensor');
+    buffer.writeln('║  Localização: $localizacao');
+    buffer.writeln('║  Timestamp: ${_formatarTimestamp(timestamp)}');
+    buffer.writeln('╠════════════════════════════════════╣');
+    
+    if (movimentoDetectado || lampadaLigada) {
+      buffer.writeln('║  🚨 DETECÇÃO:');
+      if (movimentoDetectado) {
+        buffer.writeln('║     Movimento: DETECTADO');
+      }
+      if (lampadaLigada) {
+        buffer.writeln('║     Sistema de Iluminação: ATIVO');
+      }
+    }
+    
+    if (lampadaLigada) {
+      buffer.writeln('║  💡 ILUMINAÇÃO:');
+      buffer.writeln('║     Lâmpadas Acionadas: $qtdLampadasAtivas un');
+      buffer.writeln('║     Potência Unitária: ${POTENCIA_LAMPADA_W}W');
+      buffer.writeln('║     Potência Total: ${qtdLampadasAtivas * POTENCIA_LAMPADA_W}W');
+      buffer.writeln('║     Tempo Ligado: $tempoLigadoMin minutos');
+      buffer.writeln('║  ⚡ ENERGIA:');
+      buffer.writeln('║     Consumo: ${consumoKwh.toStringAsFixed(4)} kWh');
+      buffer.writeln('║     Consumo: ${(consumoKwh * 1000).toStringAsFixed(2)} Wh');
+      buffer.writeln('║     Tarifa: R\$ ${TARIFA_KWH.toStringAsFixed(2)}/kWh');
+      buffer.writeln('║     Custo: R\$ ${custoReais.toStringAsFixed(4)}');
+    }
+    
+    if (temperatura != null || umidade != null) {
+      buffer.writeln('║  🌡️  AMBIENTE:');
+      if (temperatura != null) {
+        buffer.writeln('║     Temperatura: ${temperatura!.toStringAsFixed(1)}°C');
+      }
+      if (umidade != null) {
+        buffer.writeln('║     Umidade: ${umidade!.toStringAsFixed(1)}%');
+      }
+    }
+    
+    buffer.writeln('╚════════════════════════════════════╝');
+    
+    return buffer.toString();
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // FORMATAR TIMESTAMP
+  // ════════════════════════════════════════════════════════════════
+  String _formatarTimestamp(DateTime dt) {
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
+           '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
   }
 }
