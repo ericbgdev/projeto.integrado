@@ -1,3 +1,8 @@
+// ════════════════════════════════════════════════════════════════
+// SERVIÇO: Firebase Realtime Database v2.0
+// Com sistema de iluminação 100 lâmpadas
+// ════════════════════════════════════════════════════════════════
+
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -11,15 +16,18 @@ class FirebaseRealtimeService {
   static String? _accessToken;
   static DateTime? _tokenExpiry;
 
+  // ════════════════════════════════════════════════════════════════
+  // INICIALIZAR FIREBASE
+  // ════════════════════════════════════════════════════════════════
   static Future<void> initialize() async {
     print('🔥 Inicializando Firebase Real...');
     
     try {
-      // Carregar credenciais
-     final credentialsFile = File('config/firebase-credentials.json');
+      // Carregar credenciais - CAMINHO CORRETO
+      final credentialsFile = File('lib/config/firebase-credentials.json');
       
       if (!await credentialsFile.exists()) {
-        throw Exception('❌ Arquivo firebase-credentials.json não encontrado!');
+        throw Exception('❌ Arquivo firebase-credentials.json não encontrado em lib/config/!');
       }
 
       final credentialsContent = await credentialsFile.readAsString();
@@ -41,6 +49,9 @@ class FirebaseRealtimeService {
     }
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // REFRESH ACCESS TOKEN
+  // ════════════════════════════════════════════════════════════════
   static Future<void> _refreshAccessToken() async {
     try {
       final now = DateTime.now();
@@ -90,6 +101,9 @@ class FirebaseRealtimeService {
     }
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // SALVAR LEITURA (atualizado com novos campos v2.0)
+  // ════════════════════════════════════════════════════════════════
   static Future<void> salvarLeitura(LeituraSensor leitura) async {
     try {
       await _refreshAccessToken();
@@ -105,12 +119,20 @@ class FirebaseRealtimeService {
         'umidade': leitura.umidade,
         'movimentoDetectado': leitura.movimentoDetectado,
         'lampadaLigada': leitura.lampadaLigada,
-        'consumo_kWh': leitura.lampadaLigada ? 0.05 : 0.0,
+        // Novos campos v2.0
+        'qtdLampadasAtivas': leitura.qtdLampadasAtivas,
+        'potenciaLampadaW': LeituraSensor.POTENCIA_LAMPADA_W,
+        'tempoLigadoMin': leitura.tempoLigadoMin,
+        'consumoKwh': leitura.consumoKwh,
+        'custoReais': leitura.custoReais,
+        'tarifaKwh': LeituraSensor.TARIFA_KWH,
+        // Metadados
         'timestamp': leitura.timestamp.toIso8601String(),
         'qualidadeSinal': leitura.qualidadeSinal,
         'statusLeitura': leitura.statusLeitura,
         'sincronizadoEm': DateTime.now().toIso8601String(),
         'fonte': 'MySQL_Real',
+        'versao': '2.0',
       };
 
       // Enviar para Firebase
@@ -133,6 +155,9 @@ class FirebaseRealtimeService {
     }
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // BUSCAR LEITURAS
+  // ════════════════════════════════════════════════════════════════
   static Future<List<Map<String, dynamic>>> getLeituras() async {
     try {
       await _refreshAccessToken();
@@ -161,6 +186,9 @@ class FirebaseRealtimeService {
     }
   }
 
+  // ════════════════════════════════════════════════════════════════
+  // TESTAR CONEXÃO
+  // ════════════════════════════════════════════════════════════════
   static Future<void> testarConexao() async {
     print('🔥 Testando conexão Firebase Real...');
     
