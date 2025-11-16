@@ -175,7 +175,7 @@ class SimuladorService {
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
   // ESTATÍSTICAS DE SIMULAÇÃO
   // ════════════════════════════════════════════════════════════════
   Future<void> exibirEstatisticas() async {
@@ -196,8 +196,13 @@ class SimuladorService {
     print('   Potência unitária: ${LeituraSensor.POTENCIA_LAMPADA_W}W');
     print('   Tempo de ativação: ${LeituraSensor.TEMPO_ATIVACAO_MIN} minutos');
     print('   Tarifa de energia: R\$ ${LeituraSensor.TARIFA_KWH}/kWh');
-    print('   Consumo por ativação: ${LeituraSensor._calcularConsumo(true).toStringAsFixed(4)} kWh');
-    print('   Custo por ativação: R\$ ${LeituraSensor._calcularCusto(true).toStringAsFixed(4)}');
+    
+    // Calcular consumo e custo usando a fórmula diretamente
+    final consumoPorAtivacao = (LeituraSensor.POTENCIA_LAMPADA_W * LeituraSensor.LAMPADAS_POR_FILIAL * (LeituraSensor.TEMPO_ATIVACAO_MIN / 60.0)) / 1000.0;
+    final custoPorAtivacao = consumoPorAtivacao * LeituraSensor.TARIFA_KWH;
+    
+    print('   Consumo por ativação: ${consumoPorAtivacao.toStringAsFixed(4)} kWh');
+    print('   Custo por ativação: R\$ ${custoPorAtivacao.toStringAsFixed(4)}');
     
     print('\n💰 ANÁLISE POR FILIAL:');
     final consumoPorFilial = await DatabaseService.getConsumoPorFilial();
