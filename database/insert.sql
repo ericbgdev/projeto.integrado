@@ -1,10 +1,9 @@
--- ════════════════════════════════════════════════════════════════
 -- POPULAR BANCO - SISTEMA PACKBAG v2.0
 -- 3000 Leituras Históricas (30 dias)
 -- Sistema: 100 Lâmpadas LED 20W por Filial
 -- Consumo: 0.33 kWh por ativação
 -- Custo: R$ 0,3135 por ativação
--- ════════════════════════════════════════════════════════════════
+
 
 USE entrega5;
 
@@ -12,9 +11,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 SET AUTOCOMMIT = 0;
 START TRANSACTION;
 
--- ════════════════════════════════════════════════════════════════
 -- 1. INSERIR/ATUALIZAR FILIAIS COM CONFIGURAÇÃO DE ILUMINAÇÃO
--- ════════════════════════════════════════════════════════════════
 
 INSERT INTO dim_filial (ID_Filial, Nome_Filial, Cidade, Estado, Endereco, Gerente, Telefone, CEP, Qtd_Lampadas, Potencia_Lampada_W, Tempo_Ativacao_Min) 
 VALUES
@@ -25,11 +22,9 @@ ON DUPLICATE KEY UPDATE
     Potencia_Lampada_W = VALUES(Potencia_Lampada_W),
     Tempo_Ativacao_Min = VALUES(Tempo_Ativacao_Min);
 
-SELECT '✅ Filiais inseridas/atualizadas com configuração de iluminação' AS Status;
+SELECT 'Filiais inseridas/atualizadas com configuração de iluminação' AS Status;
 
--- ════════════════════════════════════════════════════════════════
 -- 2. INSERIR/ATUALIZAR SENSORES
--- ════════════════════════════════════════════════════════════════
 
 INSERT INTO dim_sensor (ID_Sensor, Tipo_Sensor, Modelo, Localizacao, ID_Filial, Status) 
 VALUES
@@ -43,11 +38,9 @@ ON DUPLICATE KEY UPDATE
     Modelo = VALUES(Modelo),
     Status = VALUES(Status);
 
-SELECT '✅ Sensores inseridos/atualizados' AS Status;
+SELECT 'Sensores inseridos/atualizados' AS Status;
 
--- ════════════════════════════════════════════════════════════════
 -- 3. STORED PROCEDURE - GERAR 3000 LEITURAS HISTÓRICAS
--- ════════════════════════════════════════════════════════════════
 
 DELIMITER $$
 
@@ -78,16 +71,13 @@ BEGIN
     DECLARE v_tarifa DECIMAL(6,4) DEFAULT 0.9500;
     
     SELECT '════════════════════════════════════════════════' AS '';
-    SELECT '🔄 INICIANDO GERAÇÃO DE 3000 LEITURAS' AS '';
-    SELECT '💡 Sistema: 100 Lâmpadas LED 20W' AS '';
-    SELECT '⚡ Consumo: 0.33 kWh por ativação' AS '';
-    SELECT '💰 Custo: R$ 0,3135 por ativação' AS '';
+    SELECT 'INICIANDO GERAÇÃO DE 3000 LEITURAS' AS '';
+    SELECT 'Sistema: 100 Lâmpadas LED 20W' AS '';
+    SELECT 'Consumo: 0.33 kWh por ativação' AS '';
+    SELECT 'Custo: R$ 0,3135 por ativação' AS '';
     SELECT '════════════════════════════════════════════════' AS '';
     
     WHILE i < 3000 DO
-        -- ════════════════════════════════════════════════════════
-        -- Selecionar sensor aleatório
-        -- ════════════════════════════════════════════════════════
         SET v_pos = FLOOR(1 + RAND() * 6);
         SET v_sensor_id = CASE v_pos
             WHEN 1 THEN 1
@@ -98,9 +88,7 @@ BEGIN
             ELSE 8
         END;
         
-        -- ════════════════════════════════════════════════════════
-        -- Buscar informações do sensor e filial
-        -- ════════════════════════════════════════════════════════
+      
         SELECT 
             s.Tipo_Sensor,
             s.ID_Filial,
@@ -117,9 +105,7 @@ BEGIN
         JOIN DIM_FILIAL f ON s.ID_Filial = f.ID_Filial
         WHERE s.ID_Sensor = v_sensor_id;
         
-        -- ════════════════════════════════════════════════════════
-        -- Gerar timestamp aleatório (últimos 30 dias)
-        -- ════════════════════════════════════════════════════════
+      
         SET v_dias_atras = FLOOR(RAND() * 30);
         SET v_hora = FLOOR(RAND() * 24);
         SET v_minuto = FLOOR(RAND() * 60);
@@ -128,9 +114,7 @@ BEGIN
                          + INTERVAL v_minuto MINUTE
                          + INTERVAL FLOOR(RAND() * 60) SECOND;
         
-        -- ════════════════════════════════════════════════════════
-        -- Gerar dados baseado no tipo de sensor
-        -- ════════════════════════════════════════════════════════
+      
         IF v_tipo_sensor = 'Temperatura/Umidade' THEN
             -- Temperatura normal: 18-32°C, com 10% de chance de alerta
             IF RAND() < 0.10 THEN
@@ -176,9 +160,7 @@ BEGIN
             SET v_lampada = v_movimento;
         END IF;
         
-        -- ════════════════════════════════════════════════════════
-        -- Calcular consumo e custo (100 lâmpadas 20W, 10 minutos)
-        -- ════════════════════════════════════════════════════════
+     
         IF v_lampada = 1 THEN
             -- Fórmula: (Potência_W × Quantidade × Tempo_H) / 1000 = kWh
             SET v_consumo = (v_potencia_w * v_qtd_lampadas * (v_tempo_min / 60.0)) / 1000.0;
@@ -193,9 +175,7 @@ BEGIN
             SET v_tempo_min = 0;
         END IF;
         
-        -- ════════════════════════════════════════════════════════
-        -- Inserir leitura com novos campos
-        -- ════════════════════════════════════════════════════════
+
         INSERT INTO FATO_LEITURAS (
             ID_Sensor, 
             ID_Filial, 
@@ -228,9 +208,7 @@ BEGIN
             'Válida'
         );
         
-        -- ════════════════════════════════════════════════════════
-        -- Inserir dimensão tempo
-        -- ════════════════════════════════════════════════════════
+       
         INSERT IGNORE INTO DIM_TEMPO (
             ID_Data,
             Data_Completa,
@@ -266,12 +244,10 @@ BEGIN
         
         SET i = i + 1;
         
-        -- ════════════════════════════════════════════════════════
-        -- Progresso
-        -- ════════════════════════════════════════════════════════
+        
         IF MOD(i, 500) = 0 THEN
             SELECT CONCAT(
-                '⏳ Progresso: ', i, '/3000 leituras inseridas (',
+                'Progresso: ', i, '/3000 leituras inseridas (',
                 ROUND(i/30, 1), '%)'
             ) AS Status;
         END IF;
@@ -279,31 +255,28 @@ BEGIN
     END WHILE;
     
     SELECT '════════════════════════════════════════════════' AS '';
-    SELECT CONCAT('✅ ', i, ' leituras inseridas com sucesso!') AS Resultado;
+    SELECT CONCAT(' SUCESSO ', i, ' leituras inseridas com sucesso!') AS Resultado;
     SELECT '════════════════════════════════════════════════' AS '';
     
 END$$
 
 DELIMITER ;
 
--- ════════════════════════════════════════════════════════════════
 -- 4. EXECUTAR GERAÇÃO DE LEITURAS
--- ════════════════════════════════════════════════════════════════
+
 
 SELECT '' AS '';
 SELECT '════════════════════════════════════════════════' AS '';
-SELECT '🚀 INICIANDO INSERÇÃO DE 3000 LEITURAS' AS '';
-SELECT '⏱️  Tempo estimado: 2-3 minutos' AS '';
-SELECT '📅 Período: últimos 30 dias' AS '';
-SELECT '💡 Sistema: 100 Lâmpadas LED 20W por filial' AS '';
+SELECT 'INICIANDO INSERÇÃO DE 3000 LEITURAS' AS '';
+SELECT 'Tempo estimado: 2-3 minutos' AS '';
+SELECT 'Período: últimos 30 dias' AS '';
+SELECT 'Sistema: 100 Lâmpadas LED 20W por filial' AS '';
 SELECT '════════════════════════════════════════════════' AS '';
 SELECT '' AS '';
 
 CALL sp_gerar_leituras_historico();
 
--- ════════════════════════════════════════════════════════════════
 -- 5. COMMIT E RESTAURAR CONFIGURAÇÕES
--- ════════════════════════════════════════════════════════════════
 
 COMMIT;
 
@@ -311,16 +284,14 @@ SET FOREIGN_KEY_CHECKS = 1;
 SET AUTOCOMMIT = 1;
 
 SELECT '' AS '';
-SELECT '💾 DADOS SALVOS PERMANENTEMENTE NO DISCO!' AS '';
+SELECT 'DADOS SALVOS PERMANENTEMENTE NO DISCO!' AS '';
 SELECT '' AS '';
 
--- ════════════════════════════════════════════════════════════════
 -- 6. VERIFICAÇÕES E ESTATÍSTICAS
--- ════════════════════════════════════════════════════════════════
 
 SELECT '' AS '';
 SELECT '════════════════════════════════════════════════' AS '';
-SELECT '📊 VERIFICAÇÃO DOS DADOS INSERIDOS' AS '';
+SELECT 'VERIFICAÇÃO DOS DADOS INSERIDOS' AS '';
 SELECT '════════════════════════════════════════════════' AS '';
 SELECT '' AS '';
 
@@ -329,7 +300,7 @@ SELECT COUNT(*) AS 'Total de Leituras' FROM FATO_LEITURAS;
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '🏢 LEITURAS POR FILIAL' AS '';
+SELECT 'LEITURAS POR FILIAL' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -342,7 +313,7 @@ GROUP BY f.Nome_Filial;
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '📡 LEITURAS POR TIPO DE SENSOR' AS '';
+SELECT 'LEITURAS POR TIPO DE SENSOR' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -360,7 +331,7 @@ GROUP BY s.Tipo_Sensor;
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '💡 ANÁLISE DE ILUMINAÇÃO' AS '';
+SELECT 'ANÁLISE DE ILUMINAÇÃO' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -379,7 +350,7 @@ GROUP BY f.Nome_Filial, f.Qtd_Lampadas, f.Potencia_Lampada_W, f.Tempo_Ativacao_M
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '🕐 LEITURAS POR PERÍODO DO DIA' AS '';
+SELECT 'LEITURAS POR PERÍODO DO DIA' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -396,7 +367,7 @@ ORDER BY FIELD(t.Periodo_Dia, 'Madrugada', 'Manhã', 'Tarde', 'Noite');
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '📅 LEITURAS POR DIA DA SEMANA' AS '';
+SELECT 'LEITURAS POR DIA DA SEMANA' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -413,7 +384,7 @@ ORDER BY FIELD(t.DiaSemana, 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'S
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '📈 RESUMO DOS ÚLTIMOS 30 DIAS' AS '';
+SELECT 'RESUMO DOS ÚLTIMOS 30 DIAS' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -430,7 +401,7 @@ LIMIT 30;
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '🌡️  ESTATÍSTICAS DE TEMPERATURA' AS '';
+SELECT 'ESTATÍSTICAS DE TEMPERATURA' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -444,7 +415,7 @@ WHERE Temperatura IS NOT NULL;
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '💧 ESTATÍSTICAS DE UMIDADE' AS '';
+SELECT 'ESTATÍSTICAS DE UMIDADE' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -458,7 +429,7 @@ WHERE Umidade IS NOT NULL;
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '🚨 ESTATÍSTICAS DE MOVIMENTO E CONSUMO' AS '';
+SELECT 'ESTATÍSTICAS DE MOVIMENTO E CONSUMO' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -472,7 +443,7 @@ FROM FATO_LEITURAS;
 
 SELECT '' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
-SELECT '📋 ÚLTIMAS 10 LEITURAS' AS '';
+SELECT 'ÚLTIMAS 10 LEITURAS' AS '';
 SELECT '─────────────────────────────────────────────' AS '';
 
 SELECT 
@@ -481,8 +452,8 @@ SELECT
     s.Tipo_Sensor AS 'Sensor',
     CONCAT(COALESCE(ROUND(fl.Temperatura, 1), '-'), '°C') AS 'Temp',
     CONCAT(COALESCE(ROUND(fl.Umidade, 1), '-'), '%') AS 'Umid',
-    IF(fl.Movimento_Detectado = 1, '✅', '❌') AS 'Mov',
-    IF(fl.Lampada_Ligada = 1, '💡', '⚫') AS 'Lamp',
+    IF(fl.Movimento_Detectado = 1, 'SUCESSO', 'ERRO') AS 'Mov',
+    IF(fl.Lampada_Ligada = 1, 'LIGADA', 'DESLIGADA') AS 'Lamp',
     fl.Qtd_Lampadas_Ativas AS 'Qtd',
     fl.Consumo_kWh AS 'kWh',
     CONCAT('R$ ', FORMAT(fl.Custo_Reais, 4, 'pt_BR')) AS 'Custo'
@@ -492,21 +463,19 @@ JOIN DIM_SENSOR s ON fl.ID_Sensor = s.ID_Sensor
 ORDER BY fl.Timestamp DESC
 LIMIT 10;
 
--- ════════════════════════════════════════════════════════════════
 -- 7. MENSAGEM FINAL
--- ════════════════════════════════════════════════════════════════
 
 SELECT '' AS '';
 SELECT '════════════════════════════════════════════════' AS '';
-SELECT '✅ INSERÇÃO DE 3000 LEITURAS CONCLUÍDA!' AS '';
+SELECT 'INSERÇÃO DE 3000 LEITURAS CONCLUÍDA!' AS '';
 SELECT '' AS '';
-SELECT '💾 Dados salvos permanentemente no MySQL' AS '';
-SELECT '📅 Período: últimos 30 dias' AS '';
-SELECT '💡 Sistema: 100 Lâmpadas LED 20W' AS '';
-SELECT '⚡ Consumo calculado automaticamente' AS '';
-SELECT '💰 Custos registrados (R$ 0,95/kWh)' AS '';
+SELECT 'Dados salvos permanentemente no MySQL' AS '';
+SELECT 'Período: últimos 30 dias' AS '';
+SELECT 'Sistema: 100 Lâmpadas LED 20W' AS '';
+SELECT 'Consumo calculado automaticamente' AS '';
+SELECT 'Custos registrados (R$ 0,95/kWh)' AS '';
 SELECT '' AS '';
-SELECT '🎯 PRÓXIMOS PASSOS:' AS '';
+SELECT 'PRÓXIMOS PASSOS:' AS '';
 SELECT '   1. Execute: dart run main.dart' AS '';
 SELECT '   2. Ou: dart run verificar_banco.dart' AS '';
 SELECT '   3. Análises SQL: analise_custos_energia.sql' AS '';
