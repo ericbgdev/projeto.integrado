@@ -1,6 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 // SERVIÇO: DatabaseService
 // MySQL com Sistema de 100 Lâmpadas LED 20W
+// Firebase obrigatório
 // ════════════════════════════════════════════════════════════════
 
 import 'package:mysql1/mysql1.dart';
@@ -95,8 +96,10 @@ class DatabaseService {
         print('   💰 Custo: R\$ ${leitura.custoReais.toStringAsFixed(4)}');
       }
       
-      // Salvar no Firebase Real
-      await FirebaseRealtimeService.salvarLeitura(leitura);
+      // Salvar no Firebase (obrigatório)
+      if (FirebaseRealtimeService.isInitialized) {
+        await FirebaseRealtimeService.salvarLeitura(leitura);
+      }
       
     } catch (e) {
       print('❌ Erro ao salvar leitura: $e');
@@ -156,7 +159,11 @@ class DatabaseService {
       );
       
       print('💾 Leitura salva via insert direto');
-      await FirebaseRealtimeService.salvarLeitura(leitura);
+      
+      // Salvar no Firebase
+      if (FirebaseRealtimeService.isInitialized) {
+        await FirebaseRealtimeService.salvarLeitura(leitura);
+      }
       
     } catch (e) {
       print('❌ Erro no insert direto: $e');
