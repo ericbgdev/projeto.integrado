@@ -1,6 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-// SERVIÇO: Firebase Realtime Database v2.0
-// Com sistema de iluminação 100 lâmpadas
+// SERVIÇO: Firebase Realtime Database v2.0 - CORRIGIDO
 // ════════════════════════════════════════════════════════════════
 
 import 'dart:convert';
@@ -15,19 +14,51 @@ class FirebaseRealtimeService {
   static Map<String, dynamic>? _serviceAccount;
   static String? _accessToken;
   static DateTime? _tokenExpiry;
+  static bool _inicializado = false;
+
+  static bool get isInitialized => _inicializado;
+
+  // ════════════════════════════════════════════════════════════════
+  // BUSCAR ARQUIVO DE CREDENCIAIS
+  // ════════════════════════════════════════════════════════════════
+  static Future<File?> _buscarCredenciais() async {
+    final possiveisCaminhos = [
+      'config/firebase-credentials.json',
+      '../config/firebase-credentials.json',
+      'lib/config/firebase-credentials.json',
+      './lib/config/firebase-credentials.json',
+    ];
+    
+    for (final caminho in possiveisCaminhos) {
+      try {
+        final arquivo = File(caminho);
+        if (await arquivo.exists()) {
+          print('✅ Credenciais encontradas: ${arquivo.absolute.path}\n');
+          return arquivo;
+        }
+      } catch (e) {
+        // Ignorar e tentar próximo
+      }
+    }
+    
+    return null;
+  }
 
   // ════════════════════════════════════════════════════════════════
   // INICIALIZAR FIREBASE
   // ════════════════════════════════════════════════════════════════
   static Future<void> initialize() async {
-    print('🔥 Inicializando Firebase Real...');
+    if (_inicializado) {
+      return;
+    }
+    
+    print('🔥 Inicializando Firebase...');
     
     try {
-      // Carregar credenciais - CAMINHO CORRETO
-      final credentialsFile = File('lib/config/firebase-credentials.json');
+      final credentialsFile = await _buscarCredenciais();
       
-      if (!await credentialsFile.exists()) {
-        throw Exception('❌ Arquivo firebase-credentials.json não encontrado em lib/config/!');
+      if (credentialsFile == null) {
+        throw Exception('Arquivo firebase-credentials.json não encontrado');
       }
 
       final credentialsContent = await credentialsFile.readAsString();
@@ -36,48 +67,24 @@ class FirebaseRealtimeService {
       _projectId = _serviceAccount!['project_id'];
       _databaseUrl = 'https://$_projectId-default-rtdb.firebaseio.com';
       
-      // Gerar token de acesso
-      await _refreshAccessToken();
-      
-      print('✅ Firebase conectado: $_databaseUrl');
-      print('📁 Projeto: $_projectId');
-      
-    } catch (e) {
-      print('❌ Erro ao inicializar Firebase: $e');
-      print('💡 Certifique-se que firebase-credentials.json existe em lib/config/');
-      rethrow;
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════════
-  // REFRESH ACCESS TOKEN
-  // ════════════════════════════════════════════════════════════════
-  static Future<void> _refreshAccessToken() async {
-    try {
+      // Gerar token ANTES de marcar como inicializado
       final now = DateTime.now();
       
-      // Token válido por 1 hora
-      if (_accessToken != null && _tokenExpiry != null && now.isBefore(_tokenExpiry!)) {
-        return; // Token ainda válido
-      }
+      final jwt = JWT({
+        'iss': _serviceAccount!['client_email'],
+        'sub': _serviceAccount!['client_email'],
+        'aud': 'https://oauth2.googleapis.com/token',
+        'iat': now.millisecondsSinceEpoch ~/ 1000,
+        'exp': now.add(Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+        'scope': 'https://www.googleapis.com/auth/firebase.database '
+                 'https://www.googleapis.com/auth/userinfo.email'
+      });
 
-      // Criar JWT
-      final jwt = JWT(
-        {
-          'iss': _serviceAccount!['client_email'],
-          'sub': _serviceAccount!['client_email'],
-          'aud': 'https://oauth2.googleapis.com/token',
-          'iat': now.millisecondsSinceEpoch ~/ 1000,
-          'exp': now.add(Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
-          'scope': 'https://www.googleapis.com/auth/firebase.database '
-                   'https://www.googleapis.com/auth/userinfo.email'
-        },
+      final token = jwt.sign(
+        RSAPrivateKey(_serviceAccount!['private_key']), 
+        algorithm: JWTAlgorithm.RS256
       );
 
-      final privateKey = _serviceAccount!['private_key'];
-      final token = jwt.sign(RSAPrivateKey(privateKey), algorithm: JWTAlgorithm.RS256);
-
-      // Trocar JWT por Access Token
       final response = await http.post(
         Uri.parse('https://oauth2.googleapis.com/token'),
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -90,21 +97,80 @@ class FirebaseRealtimeService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         _accessToken = data['access_token'];
-        _tokenExpiry = now.add(Duration(seconds: data['expires_in'] - 300)); // 5 min antes
+        _tokenExpiry = now.add(Duration(seconds: data['expires_in'] - 300));
+        
+        // AGORA SIM marcar como inicializado
+        _inicializado = true;
+        
+        print('✅ Firebase conectado!');
+        print('🌐 URL: $_databaseUrl');
+        print('📁 Projeto: $_projectId\n');
       } else {
         throw Exception('Erro ao obter token: ${response.body}');
       }
       
     } catch (e) {
-      print('❌ Erro ao gerar token: $e');
+      print('❌ Erro ao inicializar Firebase: $e\n');
+      _inicializado = false;
       rethrow;
     }
   }
 
   // ════════════════════════════════════════════════════════════════
-  // SALVAR LEITURA (atualizado com novos campos v2.0)
+  // REFRESH ACCESS TOKEN
+  // ════════════════════════════════════════════════════════════════
+  static Future<void> _refreshAccessToken() async {
+    if (!_inicializado) {
+      throw Exception('Firebase não inicializado');
+    }
+    
+    final now = DateTime.now();
+    
+    if (_accessToken != null && _tokenExpiry != null && now.isBefore(_tokenExpiry!)) {
+      return;
+    }
+
+    final jwt = JWT({
+      'iss': _serviceAccount!['client_email'],
+      'sub': _serviceAccount!['client_email'],
+      'aud': 'https://oauth2.googleapis.com/token',
+      'iat': now.millisecondsSinceEpoch ~/ 1000,
+      'exp': now.add(Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+      'scope': 'https://www.googleapis.com/auth/firebase.database '
+               'https://www.googleapis.com/auth/userinfo.email'
+    });
+
+    final token = jwt.sign(
+      RSAPrivateKey(_serviceAccount!['private_key']), 
+      algorithm: JWTAlgorithm.RS256
+    );
+
+    final response = await http.post(
+      Uri.parse('https://oauth2.googleapis.com/token'),
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: {
+        'grant_type': 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+        'assertion': token,
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      _accessToken = data['access_token'];
+      _tokenExpiry = now.add(Duration(seconds: data['expires_in'] - 300));
+    } else {
+      throw Exception('Erro ao refresh token: ${response.body}');
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // SALVAR LEITURA
   // ════════════════════════════════════════════════════════════════
   static Future<void> salvarLeitura(LeituraSensor leitura) async {
+    if (!_inicializado) {
+      throw Exception('Firebase não inicializado');
+    }
+    
     try {
       await _refreshAccessToken();
 
@@ -119,14 +185,12 @@ class FirebaseRealtimeService {
         'umidade': leitura.umidade,
         'movimentoDetectado': leitura.movimentoDetectado,
         'lampadaLigada': leitura.lampadaLigada,
-        // Novos campos v2.0
         'qtdLampadasAtivas': leitura.qtdLampadasAtivas,
         'potenciaLampadaW': LeituraSensor.POTENCIA_LAMPADA_W,
         'tempoLigadoMin': leitura.tempoLigadoMin,
         'consumoKwh': leitura.consumoKwh,
         'custoReais': leitura.custoReais,
         'tarifaKwh': LeituraSensor.TARIFA_KWH,
-        // Metadados
         'timestamp': leitura.timestamp.toIso8601String(),
         'qualidadeSinal': leitura.qualidadeSinal,
         'statusLeitura': leitura.statusLeitura,
@@ -135,7 +199,6 @@ class FirebaseRealtimeService {
         'versao': '2.0',
       };
 
-      // Enviar para Firebase
       final url = '$_databaseUrl/leituras.json?auth=$_accessToken';
       final response = await http.post(
         Uri.parse(url),
@@ -144,13 +207,13 @@ class FirebaseRealtimeService {
       );
 
       if (response.statusCode == 200) {
-        print('🔥 Leitura salva no Firebase: ${leitura.filial}');
+        print('🔥 Firebase: Leitura salva - ${leitura.filial}');
       } else {
         throw Exception('Erro HTTP ${response.statusCode}: ${response.body}');
       }
       
     } catch (e) {
-      print('❌ Erro ao salvar no Firebase: $e');
+      print('❌ Erro Firebase: $e');
       rethrow;
     }
   }
@@ -159,6 +222,8 @@ class FirebaseRealtimeService {
   // BUSCAR LEITURAS
   // ════════════════════════════════════════════════════════════════
   static Future<List<Map<String, dynamic>>> getLeituras() async {
+    if (!_inicializado) return [];
+    
     try {
       await _refreshAccessToken();
 
@@ -181,7 +246,7 @@ class FirebaseRealtimeService {
       
       return [];
     } catch (e) {
-      print('❌ Erro ao buscar leituras: $e');
+      print('❌ Erro ao buscar Firebase: $e');
       return [];
     }
   }
@@ -190,7 +255,11 @@ class FirebaseRealtimeService {
   // TESTAR CONEXÃO
   // ════════════════════════════════════════════════════════════════
   static Future<void> testarConexao() async {
-    print('🔥 Testando conexão Firebase Real...');
+    if (!_inicializado) {
+      throw Exception('Firebase não inicializado');
+    }
+    
+    print('🔥 Testando Firebase...');
     
     try {
       await _refreshAccessToken();
@@ -199,12 +268,12 @@ class FirebaseRealtimeService {
       final response = await http.get(Uri.parse(url));
       
       if (response.statusCode == 200) {
-        print('✅ Firebase Real conectado com sucesso!');
+        print('✅ Firebase OK!\n');
       } else {
-        throw Exception('Erro na conexão: ${response.statusCode}');
+        throw Exception('Erro: ${response.statusCode}');
       }
     } catch (e) {
-      print('❌ Erro na conexão: $e');
+      print('❌ Erro Firebase: $e\n');
       rethrow;
     }
   }
