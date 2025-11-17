@@ -1,7 +1,3 @@
-// ════════════════════════════════════════════════════════════════
-// SERVIÇO: SimuladorService - CORRIGIDO
-// ════════════════════════════════════════════════════════════════
-
 import 'dart:math';
 import '../models/leitura_sensor.dart';
 import '../data/sensores_data.dart';
@@ -71,32 +67,32 @@ class SimuladorService {
   }
 
   Future<void> _testarConexoes() async {
-    print('🔌 Testando conexões...\n');
+    print('Testando conexões...\n');
     
     try {
       await DatabaseService.testarConexao();
       print('');
     } catch (e) {
-      print('❌ Erro ao testar MySQL: $e');
+      print('Erro ao testar MySQL: $e');
       rethrow;
     }
   }
 
   Future<void> exibirEstatisticas() async {
     print('\n═══════════════════════════════════════════════════════════');
-    print('📊 ESTATÍSTICAS DO SISTEMA');
+    print('ESTATÍSTICAS DO SISTEMA');
     print('═══════════════════════════════════════════════════════════\n');
     
     try {
       final stats = await DatabaseService.getEstatisticas();
       
-      print('📈 GERAL:');
+      print('GERAL:');
       stats.forEach((key, value) {
         final label = key.replaceAll('_', ' ').toUpperCase();
         print('   $label: $value');
       });
       
-      print('\n💡 CONFIGURAÇÃO DO SISTEMA:');
+      print('\n CONFIGURAÇÃO DO SISTEMA:');
       print('   Lâmpadas por filial: ${LeituraSensor.LAMPADAS_POR_FILIAL} unidades');
       print('   Potência unitária: ${LeituraSensor.POTENCIA_LAMPADA_W}W');
       print('   Tempo de ativação: ${LeituraSensor.TEMPO_ATIVACAO_MIN} minutos');
@@ -110,18 +106,17 @@ class SimuladorService {
       print('   Consumo por ativação: ${consumoPorAtivacao.toStringAsFixed(4)} kWh');
       print('   Custo por ativação: R\$ ${custoPorAtivacao.toStringAsFixed(4)}');
       
-      print('\n💰 ANÁLISE POR FILIAL:');
+      print('\n ANÁLISE POR FILIAL:');
       final consumoPorFilial = await DatabaseService.getConsumoPorFilial();
       
       if (consumoPorFilial.isEmpty) {
-        print('   ⚠️  Nenhum dado de consumo disponível');
+        print('Nenhum dado de consumo disponível');
       } else {
         for (final filial in consumoPorFilial) {
           final nomeFilial = filial['Nome_Filial']?.toString() ?? 'Desconhecida';
           final totalLeituras = filial['total_leituras']?.toString() ?? '0';
           final ativacoes = filial['ativacoes']?.toString() ?? '0';
           
-          // Proteção contra valores null
           final consumoStr = filial['consumo_total_kwh']?.toString() ?? '0.0';
           final custoStr = filial['custo_total_reais']?.toString() ?? '0.0';
           
@@ -149,8 +144,8 @@ class SimuladorService {
       }
       
     } catch (e) {
-      print('❌ Erro ao exibir estatísticas: $e');
-      print('   Continuando...');
+      print('Erro ao exibir estatísticas: $e');
+      print('Continuando...');
     }
     
     print('\n═══════════════════════════════════════════════════════════\n');
