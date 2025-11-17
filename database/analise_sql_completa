@@ -1,17 +1,16 @@
--- ════════════════════════════════════════════════════════════════
 -- ANÁLISES SQL - SISTEMA PACKBAG v2.0
 -- Análises de Consumo Energético e Custos
 -- 100 Lâmpadas LED 20W por Filial
--- ════════════════════════════════════════════════════════════════
+
 
 USE entrega5;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 1. RESUMO GERAL DO SISTEMA
--- ════════════════════════════════════════════════════════════════
+
 
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  1️⃣  RESUMO GERAL DO SISTEMA' AS '';
+SELECT '  RESUMO GERAL DO SISTEMA' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -54,13 +53,12 @@ SELECT
 FROM FATO_LEITURAS
 WHERE Lampada_Ligada = 1;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 2. ANÁLISE POR FILIAL
--- ════════════════════════════════════════════════════════════════
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  2️⃣  CONSUMO E CUSTOS POR FILIAL' AS '';
+SELECT '  CONSUMO E CUSTOS POR FILIAL' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -79,13 +77,12 @@ JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
 GROUP BY df.Nome_Filial, df.Qtd_Lampadas, df.Potencia_Lampada_W, df.Tempo_Ativacao_Min
 ORDER BY SUM(fl.Consumo_kWh) DESC;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 3. CONSUMO POR PERÍODO DO DIA
--- ════════════════════════════════════════════════════════════════
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  3️⃣  CONSUMO POR PERÍODO DO DIA' AS '';
+SELECT '  CONSUMO POR PERÍODO DO DIA' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -109,13 +106,12 @@ ORDER BY
     WHEN 'Noite' THEN 4
   END;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 4. CONSUMO POR HORA DO DIA
--- ════════════════════════════════════════════════════════════════
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  4️⃣  CONSUMO POR HORA DO DIA' AS '';
+SELECT '  CONSUMO POR HORA DO DIA' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -130,13 +126,12 @@ JOIN DIM_TEMPO dt ON fl.ID_Data = dt.ID_Data
 GROUP BY dt.Hora, dt.Periodo_Dia
 ORDER BY dt.Hora;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 5. RANKING DE SENSORES - MAIOR CONSUMO
--- ════════════════════════════════════════════════════════════════
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  5️⃣  TOP SENSORES - MAIOR CONSUMO ENERGÉTICO' AS '';
+SELECT '  TOP SENSORES - MAIOR CONSUMO ENERGÉTICO' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -154,13 +149,13 @@ JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
 GROUP BY ds.ID_Sensor, df.Nome_Filial, ds.Tipo_Sensor, ds.Localizacao
 ORDER BY SUM(fl.Consumo_kWh) DESC;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 6. ANÁLISE TEMPORAL - ÚLTIMOS 7 DIAS
--- ════════════════════════════════════════════════════════════════
+
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  6️⃣  CONSUMO DOS ÚLTIMOS 7 DIAS' AS '';
+SELECT '  CONSUMO DOS ÚLTIMOS 7 DIAS' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -176,13 +171,13 @@ WHERE fl.Timestamp >= DATE_SUB(NOW(), INTERVAL 7 DAY)
 GROUP BY DATE(fl.Timestamp), dt.DiaSemana
 ORDER BY DATE(fl.Timestamp) DESC;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 7. ESTIMATIVA MENSAL
--- ════════════════════════════════════════════════════════════════
+
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  7️⃣  PROJEÇÃO MENSAL (baseado nos dados atuais)' AS '';
+SELECT '  PROJEÇÃO MENSAL (baseado nos dados atuais)' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -214,13 +209,13 @@ FROM FATO_LEITURAS fl
 JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
 GROUP BY df.Nome_Filial;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 8. COMPARATIVO DE EFICIÊNCIA
--- ════════════════════════════════════════════════════════════════
+
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  8️⃣  COMPARATIVO DE EFICIÊNCIA ENERGÉTICA' AS '';
+SELECT '  COMPARATIVO DE EFICIÊNCIA ENERGÉTICA' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -246,13 +241,13 @@ FROM FATO_LEITURAS fl
 JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
 GROUP BY df.Nome_Filial;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 9. ALERTAS DE CONSUMO ELEVADO
--- ════════════════════════════════════════════════════════════════
+
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  9️⃣  ALERTAS - ATIVAÇÕES DE ALTO CUSTO' AS '';
+SELECT '  ALERTAS - ATIVAÇÕES DE ALTO CUSTO' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT
@@ -265,7 +260,7 @@ SELECT
   fl.Tempo_Ligado_Min AS 'Tempo (min)',
   CONCAT(fl.Consumo_kWh, ' kWh') AS Consumo,
   CONCAT('R$ ', FORMAT(fl.Custo_Reais, 4, 'pt_BR')) AS Custo,
-  '⚠️ Normal' AS Status
+  'Normal' AS Status
 FROM FATO_LEITURAS fl
 JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
 JOIN DIM_SENSOR ds ON fl.ID_Sensor = ds.ID_Sensor
@@ -274,29 +269,28 @@ WHERE fl.Lampada_Ligada = 1
 ORDER BY fl.Timestamp DESC
 LIMIT 10;
 
--- ════════════════════════════════════════════════════════════════
+
 -- 10. VIEW DETALHADA - ÚLTIMAS 20 LEITURAS COM CUSTOS
--- ════════════════════════════════════════════════════════════════
+
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  🔟 ÚLTIMAS 20 LEITURAS COM DETALHES DE CUSTO' AS '';
+SELECT '  ÚLTIMAS 20 LEITURAS COM DETALHES DE CUSTO' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
 
 SELECT * FROM vw_consumo_detalhado
 LIMIT 20;
 
--- ════════════════════════════════════════════════════════════════
+
 -- FIM DAS ANÁLISES
--- ════════════════════════════════════════════════════════════════
 
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
-SELECT '  ✅ ANÁLISES CONCLUÍDAS!' AS '';
+SELECT '  ANÁLISES CONCLUÍDAS!' AS '';
 SELECT '' AS '';
 SELECT '  Sistema Packbag v2.0 - Monitoramento IoT' AS '';
-SELECT '  💡 100 Lâmpadas LED 20W por Filial' AS '';
-SELECT '  ⚡ Consumo: 0.33 kWh por ativação' AS '';
-SELECT '  💰 Custo: R$ 0,3135 por ativação' AS '';
+SELECT '  100 Lâmpadas LED 20W por Filial' AS '';
+SELECT '  Consumo: 0.33 kWh por ativação' AS '';
+SELECT '  Custo: R$ 0,3135 por ativação' AS '';
 SELECT '' AS '';
 SELECT '═══════════════════════════════════════════════════════════════' AS '';
