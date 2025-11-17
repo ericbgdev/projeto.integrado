@@ -1,20 +1,9 @@
-// ════════════════════════════════════════════════════════════════
-// MODELO: LeituraSensor v2.0
-// Sistema de 100 Lâmpadas LED 20W
-// ════════════════════════════════════════════════════════════════
-
 class LeituraSensor {
-  // ════════════════════════════════════════════════════════════════
-  // CONSTANTES DO SISTEMA DE ILUMINAÇÃO
-  // ════════════════════════════════════════════════════════════════
   static const int LAMPADAS_POR_FILIAL = 100;
   static const int POTENCIA_LAMPADA_W = 20;
   static const int TEMPO_ATIVACAO_MIN = 10;
   static const double TARIFA_KWH = 0.95;
 
-  // ════════════════════════════════════════════════════════════════
-  // CAMPOS
-  // ════════════════════════════════════════════════════════════════
   final int? idLeitura;
   final int idSensor;
   final int idFilial;
@@ -28,16 +17,11 @@ class LeituraSensor {
   final DateTime timestamp;
   final int? qualidadeSinal;
   final String? statusLeitura;
-
-  // Novos campos v2.0
   final int qtdLampadasAtivas;
   final int tempoLigadoMin;
   final double consumoKwh;
   final double custoReais;
-
-  // ════════════════════════════════════════════════════════════════
-  // CONSTRUTOR
-  // ════════════════════════════════════════════════════════════════
+  //construtor
   LeituraSensor({
     this.idLeitura,
     required this.idSensor,
@@ -61,28 +45,16 @@ class LeituraSensor {
         consumoKwh = consumoKwh ?? _calcularConsumo(lampadaLigada),
         custoReais = custoReais ?? _calcularCusto(lampadaLigada);
 
-  // ════════════════════════════════════════════════════════════════
-  // CÁLCULO DE CONSUMO
-  // Fórmula: (Potência_W × Quantidade × Tempo_H) / 1000 = kWh
-  // ════════════════════════════════════════════════════════════════
   static double _calcularConsumo(bool ligada) {
     if (!ligada) return 0.0;
-    // (20W × 100 × 10min) / 1000 = (20 × 100 × 0.167h) / 1000 = 0.33 kWh
     return (POTENCIA_LAMPADA_W * LAMPADAS_POR_FILIAL * (TEMPO_ATIVACAO_MIN / 60.0)) / 1000.0;
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // CÁLCULO DE CUSTO
-  // Fórmula: Consumo_kWh × Tarifa_kWh = R$
-  // ════════════════════════════════════════════════════════════════
   static double _calcularCusto(bool ligada) {
     if (!ligada) return 0.0;
     return _calcularConsumo(ligada) * TARIFA_KWH;
   }
-
-  // ════════════════════════════════════════════════════════════════
-  // CONVERSÃO PARA MAP
-  // ════════════════════════════════════════════════════════════════
+  
   Map<String, dynamic> toMap() {
     return {
       if (idLeitura != null) 'ID_Leitura': idLeitura,
@@ -102,9 +74,6 @@ class LeituraSensor {
     };
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // CONVERSÃO DE MAP
-  // ════════════════════════════════════════════════════════════════
   factory LeituraSensor.fromMap(Map<String, dynamic> map) {
     return LeituraSensor(
       idLeitura: map['ID_Leitura'],
@@ -127,9 +96,6 @@ class LeituraSensor {
     );
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // TO STRING SIMPLES
-  // ════════════════════════════════════════════════════════════════
   @override
   String toString() {
     String info = '[$filial] $tipoSensor (ID:$idSensor) | ';
@@ -142,9 +108,6 @@ class LeituraSensor {
     return info;
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // TO STRING DETALHADO (para leituras com lâmpadas)
-  // ════════════════════════════════════════════════════════════════
   String toDetailedString() {
     final buffer = StringBuffer();
     
@@ -194,9 +157,6 @@ class LeituraSensor {
     return buffer.toString();
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // FORMATAR TIMESTAMP
-  // ════════════════════════════════════════════════════════════════
   String _formatarTimestamp(DateTime dt) {
     return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
            '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
