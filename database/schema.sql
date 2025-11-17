@@ -17,17 +17,14 @@ SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
--- ════════════════════════════════════════════════════════════════
--- CRIAR DATABASE
--- ════════════════════════════════════════════════════════════════
+
 CREATE SCHEMA IF NOT EXISTS `entrega5` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 USE `entrega5`;
 
--- ════════════════════════════════════════════════════════════════
 -- DIMENSÃO: FILIAL
 -- Armazena informações das filiais Packbag
 -- NOVO: Campos de configuração de iluminação
--- ════════════════════════════════════════════════════════════════
+
 CREATE TABLE IF NOT EXISTS `dim_filial` (
   `ID_Filial` INT NOT NULL AUTO_INCREMENT,
   `Nome_Filial` VARCHAR(100) NOT NULL,
@@ -50,10 +47,9 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Dimensão Filial - Inclui configuração de iluminação LED';
 
--- ════════════════════════════════════════════════════════════════
 -- DIMENSÃO: SENSOR
 -- Armazena informações dos sensores IoT
--- ════════════════════════════════════════════════════════════════
+
 CREATE TABLE IF NOT EXISTS `dim_sensor` (
   `ID_Sensor` INT NOT NULL AUTO_INCREMENT,
   `Tipo_Sensor` VARCHAR(50) NOT NULL COMMENT 'Movimento, Temperatura/Umidade, Iluminacao',
@@ -76,10 +72,9 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Dimensão Sensor - PIR HC-SR501, DHT11, Sistema LED';
 
--- ════════════════════════════════════════════════════════════════
 -- DIMENSÃO: TEMPO
 -- Dimensão temporal para análises OLAP
--- ════════════════════════════════════════════════════════════════
+
 CREATE TABLE IF NOT EXISTS `dim_tempo` (
   `ID_Data` INT NOT NULL COMMENT 'Unix Timestamp',
   `Data_Completa` DATETIME NOT NULL,
@@ -98,11 +93,11 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Dimensão Tempo para análises temporais';
 
--- ════════════════════════════════════════════════════════════════
+
 -- FATO: LEITURAS
 -- Tabela fato com todas as métricas de sensores e consumo energético
 -- ATUALIZADA v2.0: Novos campos de iluminação e custo
--- ════════════════════════════════════════════════════════════════
+
 CREATE TABLE IF NOT EXISTS `fato_leituras` (
   `ID_Leitura` BIGINT NOT NULL AUTO_INCREMENT,
   `ID_Sensor` INT NOT NULL,
@@ -150,11 +145,11 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Tabela Fato - Leituras IoT com métricas de energia';
 
--- ════════════════════════════════════════════════════════════════
+
 -- STORED PROCEDURE: INSERIR LEITURA
 -- Calcula automaticamente consumo e custo energético
 -- ATUALIZADA v2.0: Cálculo de 100 lâmpadas 20W
--- ════════════════════════════════════════════════════════════════
+
 DELIMITER $$
 
 DROP PROCEDURE IF EXISTS `sp_inserir_leitura`$$
@@ -269,10 +264,10 @@ END$$
 
 DELIMITER ;
 
--- ════════════════════════════════════════════════════════════════
+
 -- VIEW: CONSUMO DETALHADO
 -- Visão consolidada para análise de consumo energético
--- ════════════════════════════════════════════════════════════════
+
 CREATE OR REPLACE VIEW `vw_consumo_detalhado` AS
 SELECT 
   fl.ID_Leitura,
@@ -307,9 +302,9 @@ JOIN DIM_FILIAL df ON fl.ID_Filial = df.ID_Filial
 JOIN DIM_TEMPO dt ON fl.ID_Data = dt.ID_Data
 ORDER BY fl.Timestamp DESC;
 
--- ════════════════════════════════════════════════════════════════
+
 -- DADOS INICIAIS: FILIAIS
--- ════════════════════════════════════════════════════════════════
+
 INSERT INTO dim_filial (
   ID_Filial, Nome_Filial, Cidade, Estado, Endereco, 
   Gerente, Telefone, CEP, 
@@ -324,9 +319,9 @@ ON DUPLICATE KEY UPDATE
   Potencia_Lampada_W = VALUES(Potencia_Lampada_W),
   Tempo_Ativacao_Min = VALUES(Tempo_Ativacao_Min);
 
--- ════════════════════════════════════════════════════════════════
+
 -- DADOS INICIAIS: SENSORES
--- ════════════════════════════════════════════════════════════════
+
 INSERT INTO dim_sensor (ID_Sensor, Tipo_Sensor, Modelo, Localizacao, ID_Filial, Status) VALUES
 -- Aguai
 (1, 'Movimento', 'PIR HC-SR501', 'Entrada Principal', 1, 'Ativo'),
@@ -340,22 +335,22 @@ ON DUPLICATE KEY UPDATE
   Modelo = VALUES(Modelo),
   Status = VALUES(Status);
 
--- ════════════════════════════════════════════════════════════════
+
 -- MENSAGEM FINAL
--- ════════════════════════════════════════════════════════════════
+
 SELECT '' AS '';
 SELECT '════════════════════════════════════════════════════════════════' AS '';
-SELECT '✅ SCHEMA v2.0 CRIADO COM SUCESSO!' AS '';
+SELECT 'SCHEMA v2.0 CRIADO COM SUCESSO!' AS '';
 SELECT '════════════════════════════════════════════════════════════════' AS '';
 SELECT '' AS '';
-SELECT '📊 ESTRUTURA CRIADA:' AS '';
+SELECT 'ESTRUTURA CRIADA:' AS '';
 SELECT '   • 4 Tabelas (3 dimensões + 1 fato)' AS '';
 SELECT '   • 1 Stored Procedure (sp_inserir_leitura)' AS '';
 SELECT '   • 1 View (vw_consumo_detalhado)' AS '';
 SELECT '   • 2 Filiais configuradas' AS '';
 SELECT '   • 6 Sensores ativos' AS '';
 SELECT '' AS '';
-SELECT '💡 CONFIGURAÇÃO DO SISTEMA:' AS '';
+SELECT 'CONFIGURAÇÃO DO SISTEMA:' AS '';
 SELECT '   • 100 Lâmpadas LED por filial' AS '';
 SELECT '   • Potência: 20W cada' AS '';
 SELECT '   • Tempo de ativação: 10 minutos' AS '';
@@ -363,7 +358,7 @@ SELECT '   • Consumo por ativação: 0.33 kWh' AS '';
 SELECT '   • Custo por ativação: R$ 0,3135' AS '';
 SELECT '   • Tarifa de energia: R$ 0,95/kWh' AS '';
 SELECT '' AS '';
-SELECT '🎯 PRÓXIMOS PASSOS:' AS '';
+SELECT 'PRÓXIMOS PASSOS:' AS '';
 SELECT '   1. Execute: dart pub get' AS '';
 SELECT '   2. Execute: dart run lib/main.dart' AS '';
 SELECT '   3. Opcional: mysql -u root -p entrega5 < database/insert.sql' AS '';
