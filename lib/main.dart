@@ -7,9 +7,9 @@ import 'models/leitura_sensor.dart';
 bool _firebaseInicializado = false;
 
 Future<void> demonstrarORM() async {
-  print('\n*************');
+  print('\n*********************************************************************');
   print(' DADOS DO SISTEMA');
-  print('************\n');
+  print('***********************************************************************\n');
   
   final filiais = await DatabaseService.getFiliais();
   print('FILIAIS (${filiais.length}):');
@@ -50,10 +50,6 @@ Future<void> demonstrarORM() async {
 }
 
 Future<void> demonstrarConsultasORM() async {
-  print('\n*************');
-  print('ESTATÍSTICAS FINAIS');
-  print('************\n');
-  
   final simulador = SimuladorService();
   await simulador.exibirEstatisticas();
   
@@ -100,9 +96,9 @@ Tarifa: R\$ 0,95/kWh
     var contador = 0;
     const totalLeituras = 10;
 
-    print('\n****************');
+    print('\n*****************************************************************');
     print('INICIANDO SIMULAÇÃO - $totalLeituras LEITURAS');
-    print('************\n');
+    print('********************************************************************\n');
     
     final timer = Timer.periodic(Duration(seconds: 3), (timer) async {
       contador++;
