@@ -38,18 +38,6 @@ class DatabaseService {
       for (final row in resultado) {
         print('   - ${row[0]}');
       }
-      
-      final filiais = await conn.query('''
-        SELECT Nome_Filial, Qtd_Lampadas, Potencia_Lampada_W, Tempo_Ativacao_Min 
-        FROM DIM_FILIAL
-      ''');
-      
-      print('\n CONFIGURAÇÃO DE ILUMINAÇÃO:');
-      for (final filial in filiais) {
-        print('   ${filial['Nome_Filial']}: ${filial['Qtd_Lampadas']}x${filial['Potencia_Lampada_W']}W '
-              '(${filial['Tempo_Ativacao_Min']}min)');
-      }
-      
     } catch (e) {
       print('Erro ao conectar no MySQL: $e');
       rethrow;
