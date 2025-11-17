@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-// SISTEMA PACKBAG - MONITORAMENTO IoT
+// SISTEMA PACKBAG - MONITORAMENTO IoT v2.0
 // 100 Lâmpadas LED 20W por Filial
 // Tempo de Ativação: 10 minutos
 // Tarifa: R$ 0,95/kWh
@@ -10,6 +10,9 @@ import 'services/simulador_service.dart';
 import 'services/database_service.dart';
 import 'services/firebase_realtime_service.dart';
 import 'models/leitura_sensor.dart';
+
+// Variável global para controlar se Firebase foi inicializado
+bool _firebaseInicializado = false;
 
 // ════════════════════════════════════════════════════════════════
 // EXIBIR INFORMAÇÕES DO BANCO
@@ -71,9 +74,13 @@ Future<void> demonstrarConsultasORM() async {
   final simulador = SimuladorService();
   await simulador.exibirEstatisticas();
   
-  // Verificar Firebase
-  final leiturasFirebase = await FirebaseRealtimeService.getLeituras();
-  print('🔥 Firebase Real: ${leiturasFirebase.length} leituras sincronizadas');
+  // Verificar Firebase se foi inicializado
+  if (_firebaseInicializado) {
+    final leiturasFirebase = await FirebaseRealtimeService.getLeituras();
+    print('🔥 Firebase Real: ${leiturasFirebase.length} leituras sincronizadas');
+  } else {
+    print('⚠️  Firebase não disponível nesta sessão');
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -106,8 +113,17 @@ void main() async {
     // ════════════════════════════════════════════════════════════════
     await DatabaseService.testarConexao();
     print('');
-    await FirebaseRealtimeService.initialize();
-    print('');
+    
+    // Tentar inicializar Firebase (não crítico)
+    try {
+      await FirebaseRealtimeService.initialize();
+      _firebaseInicializado = true;
+      print('');
+    } catch (e) {
+      print('⚠️  Firebase não pôde ser inicializado: $e');
+      print('💡 Continuando apenas com MySQL...\n');
+      _firebaseInicializado = false;
+    }
     
     // ════════════════════════════════════════════════════════════════
     // DEMONSTRAR DADOS EXISTENTES
@@ -119,7 +135,7 @@ void main() async {
     // ════════════════════════════════════════════════════════════════
     final simulador = SimuladorService();
     var contador = 0;
-    const totalLeituras = 10; // Aumentado para 10 leituras
+    const totalLeituras = 10;
 
     print('\n═══════════════════════════════════════════════════════════');
     print('🎯 INICIANDO SIMULAÇÃO - $totalLeituras LEITURAS');
@@ -159,7 +175,11 @@ void main() async {
         print('✅ SIMULAÇÃO CONCLUÍDA COM SUCESSO!');
         print('═══════════════════════════════════════════════════════════\n');
         print('📊 Dados salvos no MySQL: entrega5');
-        print('🔥 Dados sincronizados no Firebase Console');
+        
+        if (_firebaseInicializado) {
+          print('🔥 Dados sincronizados no Firebase Console');
+        }
+        
         print('\n💡 PRÓXIMOS COMANDOS:');
         print('   • Executar novamente: dart run main.dart');
         print('   • Verificar banco: dart run verificar_banco.dart');
@@ -181,7 +201,7 @@ void main() async {
     print('   1. MySQL está rodando?');
     print('   2. Banco "entrega5" foi criado?');
     print('   3. Senha correta em database_service.dart?');
-    print('   4. Firebase credentials configurado?');
+    print('   4. Firebase credentials configurado? (opcional)');
     print('\n📝 Execute: dart run verificar_banco.dart para diagnóstico\n');
   }
 }
