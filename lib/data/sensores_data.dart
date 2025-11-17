@@ -1,12 +1,5 @@
-// ════════════════════════════════════════════════════════════════
-// DADOS ESTÁTICOS: Filiais e Sensores
-// Sistema Packbag - 100 Lâmpadas LED 20W por Filial
-// ════════════════════════════════════════════════════════════════
 
 class SensoresData {
-  // ════════════════════════════════════════════════════════════════
-  // FILIAIS COM CONFIGURAÇÃO DE ILUMINAÇÃO
-  // ════════════════════════════════════════════════════════════════
   static final Map<int, Map<String, dynamic>> filiais = {
     1: {
       'id': 1,
@@ -17,7 +10,6 @@ class SensoresData {
       'gerente': 'João Silva',
       'telefone': '(19) 3652-1234',
       'cep': '13868-000',
-      // Configuração de iluminação
       'qtd_lampadas': 100,
       'potencia_lampada_w': 20,
       'tempo_ativacao_min': 10,
@@ -31,18 +23,13 @@ class SensoresData {
       'gerente': 'Maria Santos',
       'telefone': '(19) 3671-5678',
       'cep': '13700-000',
-      // Configuração de iluminação
       'qtd_lampadas': 100,
       'potencia_lampada_w': 20,
       'tempo_ativacao_min': 10,
     }
   };
-
-  // ════════════════════════════════════════════════════════════════
-  // SENSORES POR FILIAL
-  // ════════════════════════════════════════════════════════════════
   static final Map<int, Map<String, dynamic>> sensores = {
-    // ════ AGUAI ════
+    //aguai
     1: {
       'id': 1,
       'tipo': 'Movimento',
@@ -76,7 +63,7 @@ class SensoresData {
       'potencia_total_w': 2000,
     },
 
-    // ════ CASA BRANCA ════
+    //casabranca
     4: {
       'id': 4,
       'tipo': 'Movimento',
@@ -110,10 +97,7 @@ class SensoresData {
       'potencia_total_w': 2000,
     },
   };
-
-  // ════════════════════════════════════════════════════════════════
-  // CONFIGURAÇÕES DO SISTEMA
-  // ════════════════════════════════════════════════════════════════
+//configs
   static const Map<String, dynamic> configuracaoSistema = {
     'versao': '2.0',
     'nome': 'Sistema Packbag IoT',
@@ -125,17 +109,10 @@ class SensoresData {
     'custo_por_ativacao_reais': 0.3135,
     'intervalo_leitura_seg': 3,
   };
-
-  // ════════════════════════════════════════════════════════════════
-  // MÉTODOS AUXILIARES
-  // ════════════════════════════════════════════════════════════════
   
-  /// Retorna nome da filial por ID
   static String getNomeFilial(int idFilial) {
     return filiais[idFilial]?['nome'] ?? 'Desconhecida';
   }
-
-  /// Retorna lista de IDs de sensores de uma filial
   static List<int> getSensoresPorFilial(int idFilial) {
     return sensores.entries
         .where((entry) => entry.value['id_filial'] == idFilial)
@@ -143,22 +120,17 @@ class SensoresData {
         .toList();
   }
 
-  /// Retorna lista de IDs de sensores por tipo
   static List<int> getSensoresPorTipo(String tipo) {
     return sensores.entries
         .where((entry) => entry.value['tipo'] == tipo)
         .map((entry) => entry.key)
         .toList();
   }
-
-  /// Retorna quantidade total de sensores ativos
   static int getTotalSensoresAtivos() {
     return sensores.values
         .where((sensor) => sensor['status'] == 'Ativo')
         .length;
   }
-
-  /// Retorna informações de configuração do sistema
   static String getInfoSistema() {
     final config = configuracaoSistema;
     return '''
@@ -185,8 +157,6 @@ class SensoresData {
 ╚════════════════════════════════════════════════════════════════╝
 ''';
   }
-
-  /// Exibe resumo de todas as filiais
   static String getResumoFiliais() {
     final buffer = StringBuffer();
     buffer.writeln('🏢 FILIAIS PACKBAG:\n');
@@ -207,8 +177,6 @@ class SensoresData {
     
     return buffer.toString();
   }
-
-  /// Exibe resumo de todos os sensores
   static String getResumoSensores() {
     final buffer = StringBuffer();
     buffer.writeln('📡 SENSORES DO SISTEMA:\n');
