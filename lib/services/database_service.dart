@@ -1,9 +1,3 @@
-// ════════════════════════════════════════════════════════════════
-// SERVIÇO: DatabaseService
-// MySQL com Sistema de 100 Lâmpadas LED 20W
-// Firebase obrigatório
-// ════════════════════════════════════════════════════════════════
-
 import 'package:mysql1/mysql1.dart';
 import '../models/leitura_sensor.dart';
 import 'firebase_realtime_service.dart';
@@ -16,14 +10,11 @@ class DatabaseService {
     host: 'localhost',
     port: 3306,
     user: 'root',
-    password: 'unifeob@123', // ← ALTERE AQUI PARA SUA SENHA
+    password: 'unifeob@123',
     db: 'entrega5',
     timeout: Duration(seconds: 60),
   );
 
-  // ════════════════════════════════════════════════════════════════
-  // OBTER CONEXÃO
-  // ════════════════════════════════════════════════════════════════
   static Future<MySqlConnection> _getConnection() async {
     if (_conn == null || !_isConnected) {
       try {
@@ -37,46 +28,38 @@ class DatabaseService {
     return _conn!;
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // TESTAR CONEXÃO
-  // ════════════════════════════════════════════════════════════════
   static Future<void> testarConexao() async {
     try {
       final conn = await _getConnection();
-      print('✅ Conectado ao MySQL: entrega5');
+      print('Conectado ao MySQL: entrega5');
       
       final resultado = await conn.query('SHOW TABLES');
-      print('📊 Tabelas no banco:');
+      print('Tabelas no banco:');
       for (final row in resultado) {
         print('   - ${row[0]}');
       }
       
-      // Verificar configuração das filiais
       final filiais = await conn.query('''
         SELECT Nome_Filial, Qtd_Lampadas, Potencia_Lampada_W, Tempo_Ativacao_Min 
         FROM DIM_FILIAL
       ''');
       
-      print('\n💡 CONFIGURAÇÃO DE ILUMINAÇÃO:');
+      print('\n CONFIGURAÇÃO DE ILUMINAÇÃO:');
       for (final filial in filiais) {
         print('   ${filial['Nome_Filial']}: ${filial['Qtd_Lampadas']}x${filial['Potencia_Lampada_W']}W '
               '(${filial['Tempo_Ativacao_Min']}min)');
       }
       
     } catch (e) {
-      print('❌ Erro ao conectar no MySQL: $e');
+      print('Erro ao conectar no MySQL: $e');
       rethrow;
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // SALVAR LEITURA (via Stored Procedure)
-  // ════════════════════════════════════════════════════════════════
   static Future<void> salvarLeitura(LeituraSensor leitura) async {
     try {
       final conn = await _getConnection();
       
-      // Chamar stored procedure que calcula tudo automaticamente
       await conn.query(
         'CALL sp_inserir_leitura(?, ?, ?, ?, ?)',
         [
@@ -88,34 +71,29 @@ class DatabaseService {
         ]
       );
       
-      print('💾 Leitura salva via SP: Sensor ${leitura.idSensor}');
+      print('Leitura salva via SP: Sensor ${leitura.idSensor}');
       
       if (leitura.lampadaLigada) {
-        print('   💡 ${leitura.qtdLampadasAtivas}x${LeituraSensor.POTENCIA_LAMPADA_W}W ligadas');
-        print('   ⚡ Consumo: ${leitura.consumoKwh.toStringAsFixed(4)} kWh');
-        print('   💰 Custo: R\$ ${leitura.custoReais.toStringAsFixed(4)}');
+        print('   ${leitura.qtdLampadasAtivas}x${LeituraSensor.POTENCIA_LAMPADA_W}W ligadas');
+        print('   Consumo: ${leitura.consumoKwh.toStringAsFixed(4)} kWh');
+        print('   Custo: R\$ ${leitura.custoReais.toStringAsFixed(4)}');
       }
       
-      // Salvar no Firebase (obrigatório)
       if (FirebaseRealtimeService.isInitialized) {
         await FirebaseRealtimeService.salvarLeitura(leitura);
       }
       
     } catch (e) {
-      print('❌ Erro ao salvar leitura: $e');
-      print('🔄 Tentando insert direto...');
+      print('Erro ao salvar leitura: $e');
+      print('Tentando insert direto...');
       await _inserirDireto(leitura);
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // INSERT DIRETO (fallback)
-  // ════════════════════════════════════════════════════════════════
   static Future<void> _inserirDireto(LeituraSensor leitura) async {
     try {
       final conn = await _getConnection();
       
-      // Buscar ID da filial
       final resultadoFilial = await conn.query(
         'SELECT ID_Filial FROM DIM_SENSOR WHERE ID_Sensor = ?',
         [leitura.idSensor]
@@ -128,10 +106,8 @@ class DatabaseService {
       final idFilial = resultadoFilial.first['ID_Filial'];
       final idData = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      // Inserir DIM_TEMPO
       await _inserirDimTempo(conn, idData, leitura.timestamp);
 
-      // Inserir leitura
       await conn.query(
         '''INSERT INTO FATO_LEITURAS 
            (ID_Sensor, ID_Filial, ID_Data, Temperatura, Umidade, 
@@ -158,22 +134,18 @@ class DatabaseService {
         ]
       );
       
-      print('💾 Leitura salva via insert direto');
+      print('Leitura salva via insert direto');
       
-      // Salvar no Firebase
       if (FirebaseRealtimeService.isInitialized) {
         await FirebaseRealtimeService.salvarLeitura(leitura);
       }
       
     } catch (e) {
-      print('❌ Erro no insert direto: $e');
+      print(' Erro no insert direto: $e');
       rethrow;
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // INSERIR DIM_TEMPO
-  // ════════════════════════════════════════════════════════════════
   static Future<void> _inserirDimTempo(MySqlConnection conn, int idData, DateTime data) async {
     try {
       final periodo = _obterPeriodoDia(data.hour);
@@ -195,7 +167,6 @@ class DatabaseService {
         ]
       );
     } catch (e) {
-      // Silenciar erro se já existir
     }
   }
 
@@ -210,10 +181,7 @@ class DatabaseService {
     const dias = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
     return dias[weekday - 1];
   }
-
-  // ════════════════════════════════════════════════════════════════
-  // BUSCAR LEITURAS RECENTES
-  // ════════════════════════════════════════════════════════════════
+  
   static Future<List<Map<String, dynamic>>> getLeituras({int limite = 50}) async {
     try {
       final conn = await _getConnection();
@@ -229,28 +197,22 @@ class DatabaseService {
       
       return resultado.map((row) => row.fields).toList();
     } catch (e) {
-      print('❌ Erro ao buscar leituras: $e');
+      print('Erro ao buscar leituras: $e');
       return [];
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // BUSCAR FILIAIS
-  // ════════════════════════════════════════════════════════════════
   static Future<List<Map<String, dynamic>>> getFiliais() async {
     try {
       final conn = await _getConnection();
       final resultado = await conn.query('SELECT * FROM DIM_FILIAL');
       return resultado.map((row) => row.fields).toList();
     } catch (e) {
-      print('❌ Erro ao buscar filiais: $e');
+      print(' Erro ao buscar filiais: $e');
       return [];
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // BUSCAR SENSORES
-  // ════════════════════════════════════════════════════════════════
   static Future<List<Map<String, dynamic>>> getSensores() async {
     try {
       final conn = await _getConnection();
@@ -261,59 +223,49 @@ class DatabaseService {
       ''');
       return resultado.map((row) => row.fields).toList();
     } catch (e) {
-      print('❌ Erro ao buscar sensores: $e');
+      print(' Erro ao buscar sensores: $e');
       return [];
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // ESTATÍSTICAS DO SISTEMA
-  // ════════════════════════════════════════════════════════════════
   static Future<Map<String, dynamic>> getEstatisticas() async {
     try {
       final conn = await _getConnection();
       
-      // Total de leituras
       final totalResult = await conn.query('SELECT COUNT(*) as total FROM FATO_LEITURAS');
       final total = totalResult.first['total'];
       
-      // Temperatura média
       final tempResult = await conn.query(
         'SELECT AVG(Temperatura) as media FROM FATO_LEITURAS WHERE Temperatura IS NOT NULL'
       );
       final mediaTemp = tempResult.first['media'] ?? 0;
       
-      // Umidade média
       final umidResult = await conn.query(
         'SELECT AVG(Umidade) as media FROM FATO_LEITURAS WHERE Umidade IS NOT NULL'
       );
       final mediaUmid = umidResult.first['media'] ?? 0;
       
-      // Consumo total
       final consumoResult = await conn.query('SELECT SUM(Consumo_kWh) as total FROM FATO_LEITURAS');
       final consumoTotal = consumoResult.first['total'] ?? 0;
       
-      // Custo total
+
       final custoResult = await conn.query('SELECT SUM(Custo_Reais) as total FROM FATO_LEITURAS');
       final custoTotal = custoResult.first['total'] ?? 0;
       
-      // Movimentos detectados
+  
       final movResult = await conn.query(
         'SELECT COUNT(*) as total FROM FATO_LEITURAS WHERE Movimento_Detectado = 1'
       );
       final movimentos = movResult.first['total'];
       
-      // Ativações de lâmpadas
       final lampResult = await conn.query(
         'SELECT COUNT(*) as total FROM FATO_LEITURAS WHERE Lampada_Ligada = 1'
       );
       final ativacoes = lampResult.first['total'];
       
-      // Filiais ativas
       final filiaisResult = await conn.query('SELECT COUNT(*) as total FROM DIM_FILIAL');
       final totalFiliais = filiaisResult.first['total'];
       
-      // Sensores ativos
       final sensoresResult = await conn.query(
         'SELECT COUNT(*) as total FROM DIM_SENSOR WHERE Status = "Ativo"'
       );
@@ -331,7 +283,7 @@ class DatabaseService {
         'sensores_ativos': totalSensores,
       };
     } catch (e) {
-      print('❌ Erro ao buscar estatísticas: $e');
+      print('Erro ao buscar estatísticas: $e');
       return {
         'total_leituras': 0,
         'media_temperatura': '0.0',
@@ -346,9 +298,6 @@ class DatabaseService {
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // RELATÓRIO DE CONSUMO POR FILIAL
-  // ════════════════════════════════════════════════════════════════
   static Future<List<Map<String, dynamic>>> getConsumoPorFilial() async {
     try {
       final conn = await _getConnection();
@@ -370,20 +319,17 @@ class DatabaseService {
       
       return resultado.map((row) => row.fields).toList();
     } catch (e) {
-      print('❌ Erro ao buscar consumo por filial: $e');
+      print('Erro ao buscar consumo por filial: $e');
       return [];
     }
   }
 
-  // ════════════════════════════════════════════════════════════════
-  // FECHAR CONEXÃO
-  // ════════════════════════════════════════════════════════════════
   static Future<void> close() async {
     try {
       await _conn?.close();
       _conn = null;
       _isConnected = false;
-      print('🔌 Conexão MySQL fechada');
+      print(' Conexão MySQL fechada');
     } catch (e) {
       _isConnected = false;
     }
