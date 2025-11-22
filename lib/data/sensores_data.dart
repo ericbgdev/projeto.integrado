@@ -140,17 +140,17 @@ class SensoresData {
 ║  Versão: ${config['versao']}                                                         ║
 ║  Nome: ${config['nome']}                                  ║
 ║                                                                ║
-║  💡 ILUMINAÇÃO:                                                ║
+║ ILUMINAÇÃO:                                                ║
 ║     • Lâmpadas por filial: ${config['lampadas_por_filial']} unidades                       ║
 ║     • Potência unitária: ${config['potencia_lampada_w']}W                                  ║
 ║     • Tempo de ativação: ${config['tempo_ativacao_min']} minutos                          ║
 ║                                                                ║
-║  ⚡ ENERGIA:                                                    ║
+║ ENERGIA:                                                    ║
 ║     • Tarifa: R\$ ${config['tarifa_kwh']}/kWh                                   ║
 ║     • Consumo por ativação: ${config['consumo_por_ativacao_kwh']} kWh                      ║
 ║     • Custo por ativação: R\$ ${config['custo_por_ativacao_reais']}                    ║
 ║                                                                ║
-║  📊 OPERAÇÃO:                                                  ║
+║ OPERAÇÃO:                                                  ║
 ║     • Intervalo de leitura: ${config['intervalo_leitura_seg']} segundos                       ║
 ║     • Filiais ativas: ${filiais.length}                                          ║
 ║     • Sensores ativos: ${getTotalSensoresAtivos()}                                       ║
@@ -159,19 +159,19 @@ class SensoresData {
   }
   static String getResumoFiliais() {
     final buffer = StringBuffer();
-    buffer.writeln('🏢 FILIAIS PACKBAG:\n');
+    buffer.writeln('FILIAIS PACKBAG:\n');
     
     filiais.forEach((id, filial) {
-      buffer.writeln('   ${filial['nome']} (ID: $id)');
-      buffer.writeln('   📍 ${filial['endereco']}');
-      buffer.writeln('   🏙️  ${filial['cidade']}/${filial['estado']} - CEP: ${filial['cep']}');
-      buffer.writeln('   👤 Gerente: ${filial['gerente']}');
-      buffer.writeln('   📞 ${filial['telefone']}');
-      buffer.writeln('   💡 ${filial['qtd_lampadas']}x${filial['potencia_lampada_w']}W '
+      buffer.writeln('{filial['nome']} (ID: $id)');
+      buffer.writeln('${filial['endereco']}');
+      buffer.writeln('${filial['cidade']}/${filial['estado']} - CEP: ${filial['cep']}');
+      buffer.writeln('Gerente: ${filial['gerente']}');
+      buffer.writeln('${filial['telefone']}');
+      buffer.writeln('${filial['qtd_lampadas']}x${filial['potencia_lampada_w']}W '
                       '(${filial['tempo_ativacao_min']}min)');
       
       final sensoresFilial = getSensoresPorFilial(id);
-      buffer.writeln('   📡 Sensores: ${sensoresFilial.length} unidades');
+      buffer.writeln('Sensores: ${sensoresFilial.length} unidades');
       buffer.writeln('');
     });
     
@@ -179,7 +179,7 @@ class SensoresData {
   }
   static String getResumoSensores() {
     final buffer = StringBuffer();
-    buffer.writeln('📡 SENSORES DO SISTEMA:\n');
+    buffer.writeln('SENSORES DO SISTEMA:\n');
     
     sensores.forEach((id, sensor) {
       final filial = getNomeFilial(sensor['id_filial']);
@@ -191,7 +191,7 @@ class SensoresData {
       buffer.writeln('      Status: ${sensor['status']}');
       
       if (sensor['tipo'] == 'Iluminacao') {
-        buffer.writeln('      💡 ${sensor['qtd_lampadas']} lâmpadas '
+        buffer.writeln('      ${sensor['qtd_lampadas']} lâmpadas '
                         '(${sensor['potencia_total_w']}W total)');
       }
       
