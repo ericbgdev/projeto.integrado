@@ -74,17 +74,14 @@ CREATE TABLE IF NOT EXISTS `fato_leituras` (
   `ID_Sensor` INT NOT NULL,
   `ID_Filial` INT NOT NULL,
   `ID_Data` INT NOT NULL,
-  -- Métricas de sensores
   `Temperatura` DECIMAL(4,1) NULL DEFAULT NULL COMMENT 'Celsius',
   `Umidade` DECIMAL(4,1) NULL DEFAULT NULL COMMENT 'Percentual',
   `Movimento_Detectado` TINYINT NULL DEFAULT 0 COMMENT '0=Não, 1=Sim',
   `Lampada_Ligada` TINYINT NULL DEFAULT 0 COMMENT '0=Desligada, 1=Ligada',
-  -- NOVOS CAMPOS v2.0 - Sistema de Iluminação
   `Qtd_Lampadas_Ativas` INT NULL DEFAULT 0 COMMENT 'Quantidade de lâmpadas acionadas',
   `Tempo_Ligado_Min` INT NULL DEFAULT 0 COMMENT 'Tempo ligado em minutos',
   `Consumo_kWh` DECIMAL(8,4) NULL DEFAULT 0.0000 COMMENT 'Consumo em kWh',
   `Custo_Reais` DECIMAL(8,4) NULL DEFAULT 0.0000 COMMENT 'Custo em R$',
-  -- Metadados
   `Timestamp` DATETIME NOT NULL,
   `Qualidade_Sinal` TINYINT NULL DEFAULT 100 COMMENT 'Percentual de qualidade',
   `Status_Leitura` ENUM('Válida', 'Erro', 'Suspeita') NULL DEFAULT 'Válida',
