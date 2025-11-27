@@ -1,17 +1,3 @@
--- ════════════════════════════════════════════════════════════════
--- SISTEMA PACKBAG IoT - SCHEMA FINAL v2.0
--- Data: 2025-11-16
--- Autores: Eric Butzloff Gudera, Gabrielly Cristina dos Reis, 
---          Lindsay Cristine Oliveira Souza
--- 
--- SISTEMA DE ILUMINAÇÃO:
--- • 100 Lâmpadas LED por filial
--- • Potência: 20W cada
--- • Tempo de ativação: 10 minutos
--- • Consumo por ativação: 0.33 kWh
--- • Custo por ativação: R$ 0,3135
--- • Tarifa: R$ 0,95/kWh
--- ════════════════════════════════════════════════════════════════
 
 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
@@ -21,9 +7,6 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 CREATE SCHEMA IF NOT EXISTS `entrega5` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 USE `entrega5`;
 
--- DIMENSÃO: FILIAL
--- Armazena informações das filiais Packbag
--- NOVO: Campos de configuração de iluminação
 
 CREATE TABLE IF NOT EXISTS `dim_filial` (
   `ID_Filial` INT NOT NULL AUTO_INCREMENT,
@@ -34,7 +17,6 @@ CREATE TABLE IF NOT EXISTS `dim_filial` (
   `Gerente` VARCHAR(100) NOT NULL,
   `Telefone` VARCHAR(20) NOT NULL,
   `CEP` VARCHAR(10) NOT NULL,
-  -- NOVOS CAMPOS v2.0
   `Qtd_Lampadas` INT DEFAULT 100 COMMENT 'Quantidade de lâmpadas LED na filial',
   `Potencia_Lampada_W` INT DEFAULT 20 COMMENT 'Potência de cada lâmpada em Watts',
   `Tempo_Ativacao_Min` INT DEFAULT 10 COMMENT 'Tempo que as lâmpadas ficam ligadas (minutos)',
@@ -46,9 +28,6 @@ AUTO_INCREMENT = 3
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Dimensão Filial - Inclui configuração de iluminação LED';
-
--- DIMENSÃO: SENSOR
--- Armazena informações dos sensores IoT
 
 CREATE TABLE IF NOT EXISTS `dim_sensor` (
   `ID_Sensor` INT NOT NULL AUTO_INCREMENT,
@@ -72,9 +51,6 @@ DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Dimensão Sensor - PIR HC-SR501, DHT11, Sistema LED';
 
--- DIMENSÃO: TEMPO
--- Dimensão temporal para análises OLAP
-
 CREATE TABLE IF NOT EXISTS `dim_tempo` (
   `ID_Data` INT NOT NULL COMMENT 'Unix Timestamp',
   `Data_Completa` DATETIME NOT NULL,
@@ -92,11 +68,6 @@ CREATE TABLE IF NOT EXISTS `dim_tempo` (
 DEFAULT CHARACTER SET = utf8mb4
 COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Dimensão Tempo para análises temporais';
-
-
--- FATO: LEITURAS
--- Tabela fato com todas as métricas de sensores e consumo energético
--- ATUALIZADA v2.0: Novos campos de iluminação e custo
 
 CREATE TABLE IF NOT EXISTS `fato_leituras` (
   `ID_Leitura` BIGINT NOT NULL AUTO_INCREMENT,
@@ -146,9 +117,7 @@ COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Tabela Fato - Leituras IoT com métricas de energia';
 
 
--- STORED PROCEDURE: INSERIR LEITURA
--- Calcula automaticamente consumo e custo energético
--- ATUALIZADA v2.0: Cálculo de 100 lâmpadas 20W
+-- ===============================================================================================================
 
 DELIMITER $$
 
@@ -162,7 +131,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_inserir_leitura`(
   IN p_lampada TINYINT
 )
 BEGIN
-  -- Variáveis
+  -- 
   DECLARE v_id_filial INT;
   DECLARE v_id_data INT;
   DECLARE v_consumo DECIMAL(8,4);
@@ -175,10 +144,9 @@ BEGIN
   DECLARE v_tempo_min INT;
   DECLARE v_tarifa_kwh DECIMAL(6,4);
 
-  -- Configuração da tarifa de energia
-  SET v_tarifa_kwh = 0.9500; -- R$ 0,95 por kWh
 
-  -- Buscar configuração da filial
+  SET v_tarifa_kwh = 0.9500;
+
   SELECT 
     ds.ID_Filial, 
     df.Qtd_Lampadas, 
@@ -193,9 +161,7 @@ BEGIN
   JOIN DIM_FILIAL df ON ds.ID_Filial = df.ID_Filial
   WHERE ds.ID_Sensor = p_id_sensor;
 
-  -- Calcular consumo e custo se lâmpada ligada
   -- Fórmula: (Potência_W × Quantidade × Tempo_H) / 1000 = kWh
-  -- Exemplo: (20W × 100 × 0.167h) / 1000 = 0.33 kWh
   IF p_lampada = 1 THEN
     SET v_consumo = (v_potencia_w * v_qtd_lampadas * (v_tempo_min / 60.0)) / 1000.0;
     SET v_custo = v_consumo * v_tarifa_kwh;
@@ -206,11 +172,9 @@ BEGIN
     SET v_tempo_min = 0;
   END IF;
 
-  -- Timestamp atual
   SET v_timestamp = NOW();
   SET v_id_data = UNIX_TIMESTAMP(v_timestamp);
 
-  -- Calcular período do dia
   SET v_periodo = CASE
     WHEN HOUR(v_timestamp) >= 0 AND HOUR(v_timestamp) < 6 THEN 'Madrugada'
     WHEN HOUR(v_timestamp) >= 6 AND HOUR(v_timestamp) < 12 THEN 'Manhã'
@@ -218,7 +182,6 @@ BEGIN
     ELSE 'Noite'
   END;
 
-  -- Calcular dia da semana
   SET v_dia_semana = CASE DAYOFWEEK(v_timestamp)
     WHEN 1 THEN 'Domingo'
     WHEN 2 THEN 'Segunda'
@@ -229,7 +192,6 @@ BEGIN
     WHEN 7 THEN 'Sábado'
   END;
 
-  -- Inserir na DIM_TEMPO se não existir
   INSERT IGNORE INTO DIM_TEMPO (
     ID_Data, Data_Completa, Ano, Mes, Dia, DiaSemana, Hora, Periodo_Dia
   ) VALUES (
@@ -243,7 +205,6 @@ BEGIN
     v_periodo
   );
 
-  -- Inserir leitura com TODOS os campos
   INSERT INTO FATO_LEITURAS (
     ID_Sensor, ID_Filial, ID_Data, 
     Temperatura, Umidade, 
@@ -265,9 +226,6 @@ END$$
 DELIMITER ;
 
 
--- VIEW: CONSUMO DETALHADO
--- Visão consolidada para análise de consumo energético
-
 CREATE OR REPLACE VIEW `vw_consumo_detalhado` AS
 SELECT 
   fl.ID_Leitura,
@@ -279,21 +237,17 @@ SELECT
   fl.Timestamp,
   dt.DiaSemana,
   dt.Periodo_Dia,
-  -- Sensores
   fl.Temperatura,
   fl.Umidade,
   fl.Movimento_Detectado,
   fl.Lampada_Ligada,
-  -- Sistema de Iluminação
   fl.Qtd_Lampadas_Ativas,
   df.Potencia_Lampada_W,
   fl.Tempo_Ligado_Min,
   (fl.Qtd_Lampadas_Ativas * df.Potencia_Lampada_W) AS Potencia_Total_W,
-  -- Energia
   fl.Consumo_kWh,
   ROUND(fl.Consumo_kWh * 1000, 2) AS Consumo_Wh,
   fl.Custo_Reais,
-  -- Metadados
   fl.Qualidade_Sinal,
   fl.Status_Leitura
 FROM FATO_LEITURAS fl
@@ -303,7 +257,6 @@ JOIN DIM_TEMPO dt ON fl.ID_Data = dt.ID_Data
 ORDER BY fl.Timestamp DESC;
 
 
--- DADOS INICIAIS: FILIAIS
 
 INSERT INTO dim_filial (
   ID_Filial, Nome_Filial, Cidade, Estado, Endereco, 
@@ -320,8 +273,6 @@ ON DUPLICATE KEY UPDATE
   Tempo_Ativacao_Min = VALUES(Tempo_Ativacao_Min);
 
 
--- DADOS INICIAIS: SENSORES
-
 INSERT INTO dim_sensor (ID_Sensor, Tipo_Sensor, Modelo, Localizacao, ID_Filial, Status) VALUES
 -- Aguai
 (1, 'Movimento', 'PIR HC-SR501', 'Entrada Principal', 1, 'Ativo'),
@@ -335,8 +286,6 @@ ON DUPLICATE KEY UPDATE
   Modelo = VALUES(Modelo),
   Status = VALUES(Status);
 
-
--- MENSAGEM FINAL
 
 SELECT '' AS '';
 SELECT '════════════════════════════════════════════════════════════════' AS '';
