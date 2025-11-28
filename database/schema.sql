@@ -114,7 +114,7 @@ COLLATE = utf8mb4_0900_ai_ci
 COMMENT = 'Tabela Fato - Leituras IoT com métricas de energia';
 
 
--- ===============================================================================================================
+
 
 DELIMITER $$
 
